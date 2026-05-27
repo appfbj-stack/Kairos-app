@@ -4,9 +4,14 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@/*": ["./src/*"],
+      "@/modules/*": ["../../modules/*"],
       "@kairos/ui": ["../../packages/ui/src/index"],
       "@kairos/types": ["../../packages/types/src/index"],
-      "@kairos/utils": ["../../packages/utils/src/index"]
+      "@kairos/utils": ["../../packages/utils/src/index"],
+      "@kairos/services-ai": ["../../services/ai/kairos-ai"],
+      "@kairos/chat": ["../../modules/chat/index"],
+      "@kairos/chat/types": ["../../modules/chat/types/index"],
+      "@kairos/chat/schemas": ["../../modules/chat/schemas/index"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
