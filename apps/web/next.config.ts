@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     "@kairos/ui", "@kairos/utils", "@kairos/types",
     "@kairos/services-ai", "@kairos/chat",
     "@kairos/cells", "@kairos/finance", "@kairos/members",
+    "@kairos/ministries", "@kairos/events", "@kairos/prayer", "@kairos/sermons",
   ],
   images: {
     remotePatterns: [

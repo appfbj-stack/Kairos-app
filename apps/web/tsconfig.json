@@ -20,7 +20,19 @@
       "@kairos/finance/schemas": ["../../modules/finance/schemas/index"],
       "@kairos/members": ["../../modules/members/index"],
       "@kairos/members/types": ["../../modules/members/types/index"],
-      "@kairos/members/schemas": ["../../modules/members/schemas/index"]
+      "@kairos/members/schemas": ["../../modules/members/schemas/index"],
+      "@kairos/ministries": ["../../modules/ministries/index"],
+      "@kairos/ministries/types": ["../../modules/ministries/types/index"],
+      "@kairos/ministries/schemas": ["../../modules/ministries/schemas/index"],
+      "@kairos/events": ["../../modules/events/index"],
+      "@kairos/events/types": ["../../modules/events/types/index"],
+      "@kairos/events/schemas": ["../../modules/events/schemas/index"],
+      "@kairos/prayer": ["../../modules/prayer/index"],
+      "@kairos/prayer/types": ["../../modules/prayer/types/index"],
+      "@kairos/prayer/schemas": ["../../modules/prayer/schemas/index"],
+      "@kairos/sermons": ["../../modules/sermons/index"],
+      "@kairos/sermons/types": ["../../modules/sermons/types/index"],
+      "@kairos/sermons/schemas": ["../../modules/sermons/schemas/index"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

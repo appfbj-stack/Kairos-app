@@ -45,7 +45,11 @@
     "@kairos/cells": "workspace:*",
     "@kairos/finance": "workspace:*",
     "@kairos/members": "workspace:*",
-    "@kairos/services-ai": "workspace:*"
+    "@kairos/services-ai": "workspace:*",
+    "@kairos/ministries": "workspace:*",
+    "@kairos/events": "workspace:*",
+    "@kairos/prayer": "workspace:*",
+    "@kairos/sermons": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.0.1",
