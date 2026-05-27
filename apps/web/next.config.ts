@@ -1,0 +1,16 @@
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  transpilePackages: ["@kairos/ui", "@kairos/utils", "@kairos/types"],
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "*.supabase.co" },
+      { protocol: "https", hostname: "*.supabase.in" },
+    ],
+  },
+  experimental: {
+    serverActions: { allowedOrigins: ["localhost:3000"] },
+  },
+};
+
+export default nextConfig;
