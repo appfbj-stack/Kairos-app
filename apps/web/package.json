@@ -42,6 +42,9 @@
     "@kairos/types": "workspace:*",
     "@kairos/utils": "workspace:*",
     "@kairos/chat": "workspace:*",
+    "@kairos/cells": "workspace:*",
+    "@kairos/finance": "workspace:*",
+    "@kairos/members": "workspace:*",
     "@kairos/services-ai": "workspace:*"
   },
   "devDependencies": {

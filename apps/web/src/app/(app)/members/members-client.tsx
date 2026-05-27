@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import { Users, Plus, Search } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Database } from "@kairos/types";
 import { formatDate, formatPhone } from "@kairos/utils";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 
 export function MembersClient({ members }: { members: Member[] }) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
 
   const filtered = members.filter((m) =>
@@ -34,10 +37,10 @@ export function MembersClient({ members }: { members: Member[] }) {
           <h1 className="text-2xl font-bold">Membros</h1>
           <p className="text-muted-foreground text-sm">{members.length} membros cadastrados</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+        <Link href="/members/new" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
           <Plus className="w-4 h-4" />
           Novo Membro
-        </button>
+        </Link>
       </div>
 
       <div className="flex items-center gap-2 px-3 py-2 border rounded-lg bg-card max-w-sm">
@@ -78,7 +81,7 @@ export function MembersClient({ members }: { members: Member[] }) {
             </thead>
             <tbody>
               {filtered.map((member) => (
-                <tr key={member.id} className="border-t hover:bg-muted/30 transition-colors cursor-pointer">
+                <tr key={member.id} onClick={() => router.push(`/members/${member.id}`)} className="border-t hover:bg-muted/30 transition-colors cursor-pointer">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold shrink-0">
