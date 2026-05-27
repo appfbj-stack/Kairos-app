@@ -1,11 +1,14 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useCreateMember, useUpdateMember } from "../hooks/use-members";
+import { useAvatarUpload } from "../hooks/use-avatar-upload";
+import { AvatarUpload } from "./avatar-upload";
 import type { Database } from "@kairos/types";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
@@ -34,9 +37,11 @@ export function MemberForm({ member }: MemberFormProps) {
   const router = useRouter();
   const createMember = useCreateMember();
   const updateMember = useUpdateMember();
+  const { upload, uploading } = useAvatarUpload();
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const isEditing = !!member;
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: member
       ? {
@@ -50,6 +55,8 @@ export function MemberForm({ member }: MemberFormProps) {
       : { status: "active" },
   });
 
+  const nameValue = watch("name");
+
   const onSubmit = async (data: FormData) => {
     try {
       const payload = {
@@ -62,10 +69,27 @@ export function MemberForm({ member }: MemberFormProps) {
       };
 
       if (isEditing) {
+        // Atualiza dados primeiro
         await updateMember.mutateAsync({ id: member.id, ...payload });
+
+        // Depois faz upload do avatar se houver arquivo novo
+        if (avatarFile) {
+          const result = await upload(avatarFile, member.id);
+          if (result) {
+            await updateMember.mutateAsync({ id: member.id, avatar_url: result.url });
+          }
+        }
         toast.success("Membro atualizado!");
       } else {
-        await createMember.mutateAsync(payload);
+        // Cria membro e depois faz upload do avatar
+        const created = await createMember.mutateAsync(payload);
+
+        if (avatarFile && created) {
+          const result = await upload(avatarFile, created.id);
+          if (result) {
+            await updateMember.mutateAsync({ id: created.id, avatar_url: result.url });
+          }
+        }
         toast.success("Membro cadastrado!");
       }
       router.push("/members");
@@ -83,7 +107,18 @@ export function MemberForm({ member }: MemberFormProps) {
   ] as const;
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 max-w-lg">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-lg">
+      {/* Avatar */}
+      <div className="flex justify-center pb-2">
+        <AvatarUpload
+          currentUrl={member?.avatar_url}
+          name={nameValue}
+          onChange={setAvatarFile}
+          uploading={uploading}
+          size="lg"
+        />
+      </div>
+
       {fields.map((field) => (
         <div key={field.name}>
           <label className="block text-sm font-medium mb-1">{field.label}</label>
@@ -121,10 +156,10 @@ export function MemberForm({ member }: MemberFormProps) {
         </button>
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || uploading}
           className="flex-1 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
         >
-          {isSubmitting ? "Salvando..." : isEditing ? "Atualizar" : "Cadastrar"}
+          {isSubmitting || uploading ? "Salvando..." : isEditing ? "Atualizar" : "Cadastrar"}
         </button>
       </div>
     </form>

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Mail, Phone, Calendar, Droplets } from "lucide-react";
 import Link from "next/link";
 import { MemberProfileClient } from "./member-profile-client";
+import { MemberAvatar } from "@/features/members/components/member-avatar";
 import { formatDate } from "@kairos/utils";
 
 export const metadata = { title: "Perfil do Membro — Kairos" };
@@ -37,10 +38,8 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
       </div>
 
       <div className="bg-card border rounded-xl p-6 space-y-6">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-primary text-2xl font-bold">
-            {member.name[0]?.toUpperCase()}
-          </div>
+        <div className="flex items-center gap-5">
+          <MemberAvatar name={member.name} avatarUrl={member.avatar_url} size="lg" />
           <div>
             <h2 className="text-xl font-semibold">{member.name}</h2>
             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold mt-1 ${status.className}`}>

@@ -46,8 +46,12 @@ export function AppHeader({ user }: { user: User }) {
         </button>
 
         <div className="flex items-center gap-2 pl-3 border-l">
-          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
-            {user.email?.[0]?.toUpperCase() ?? "U"}
+          <div className="w-8 h-8 rounded-full overflow-hidden bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold shrink-0">
+            {user.user_metadata?.["avatar_url"] ? (
+              <img src={user.user_metadata["avatar_url"] as string} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              (user.user_metadata?.["name"] as string)?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? "U"
+            )}
           </div>
           <div className="hidden sm:block">
             <p className="text-xs font-medium leading-none">

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Database } from "@kairos/types";
 import { formatDate, formatPhone } from "@kairos/utils";
+import { MemberAvatar } from "@/features/members/components/member-avatar";
 
 type Member = Database["public"]["Tables"]["members"]["Row"];
 
@@ -84,9 +85,7 @@ export function MembersClient({ members }: { members: Member[] }) {
                 <tr key={member.id} onClick={() => router.push(`/members/${member.id}`)} className="border-t hover:bg-muted/30 transition-colors cursor-pointer">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold shrink-0">
-                        {member.name[0]?.toUpperCase()}
-                      </div>
+                      <MemberAvatar name={member.name} avatarUrl={member.avatar_url} size="sm" />
                       <span className="font-medium">{member.name}</span>
                     </div>
                   </td>
