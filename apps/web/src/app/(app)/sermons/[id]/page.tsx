@@ -1,6 +1,6 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Play, Headphones, FileText, BookOpen, Calendar, Trash2 } from "lucide-react";
+import { ArrowLeft, Play, Headphones, FileText, BookOpen, Calendar, Pencil } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@kairos/utils";
 import { DeleteSermonButton } from "./delete-sermon-button";
@@ -27,6 +27,13 @@ export default async function SermonDetailPage({ params }: { params: Promise<{ i
           {sermon.series && <p className="text-xs text-primary font-medium">{sermon.series}</p>}
           <h1 className="text-2xl font-bold truncate">{sermon.title}</h1>
         </div>
+        <Link
+          href={`/sermons/${id}/edit`}
+          className="flex items-center gap-2 px-3 py-2 text-sm font-medium border rounded-lg hover:bg-muted transition-colors"
+        >
+          <Pencil className="w-4 h-4" />
+          Editar
+        </Link>
         <DeleteSermonButton id={id} title={sermon.title} />
       </div>
 

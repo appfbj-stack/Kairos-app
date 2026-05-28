@@ -82,6 +82,34 @@ export function useCreateSermon() {
   });
 }
 
+export function useUpdateSermon() {
+  const supabase = createBrowserClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...input }: {
+      id: string; title: string; pastor_id: string; series?: string;
+      scripture?: string; video_url?: string; audio_url?: string;
+      pdf_url?: string; preached_at: string;
+    }) => {
+      const { data, error } = await supabase
+        .from("sermons")
+        .update({
+          title: input.title, pastor_id: input.pastor_id,
+          series: input.series || null, scripture: input.scripture || null,
+          video_url: input.video_url || null, audio_url: input.audio_url || null,
+          pdf_url: input.pdf_url || null, preached_at: input.preached_at,
+        })
+        .eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: ["sermons"] });
+      void queryClient.invalidateQueries({ queryKey: ["sermon", data.id] });
+    },
+  });
+}
+
 export function useDeleteSermon() {
   const supabase = createBrowserClient();
   const queryClient = useQueryClient();

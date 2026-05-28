@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { z } from "zod";
-import { useCreateSermon, usePastors } from "../hooks/use-sermons";
+import { useCreateSermon, useUpdateSermon, usePastors } from "../hooks/use-sermons";
 
 const schema = z.object({
   title: z.string().min(3, "Título obrigatório"),
@@ -36,6 +36,7 @@ interface SermonFormProps {
 export function SermonForm({ sermon }: SermonFormProps) {
   const router = useRouter();
   const createSermon = useCreateSermon();
+  const updateSermon = useUpdateSermon();
   const { data: pastors = [] } = usePastors();
   const isEditing = !!sermon;
 
@@ -57,9 +58,15 @@ export function SermonForm({ sermon }: SermonFormProps) {
 
   const onSubmit = async (data: FormData) => {
     try {
-      await createSermon.mutateAsync(data);
-      toast.success("Sermão cadastrado!");
-      router.push("/sermons");
+      if (isEditing) {
+        await updateSermon.mutateAsync({ id: sermon.id, ...data });
+        toast.success("Sermão atualizado!");
+        router.push(`/sermons/${sermon.id}`);
+      } else {
+        await createSermon.mutateAsync(data);
+        toast.success("Sermão cadastrado!");
+        router.push("/sermons");
+      }
     } catch {
       toast.error("Erro ao salvar sermão");
     }

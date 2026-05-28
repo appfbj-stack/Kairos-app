@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, Heart } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PrayerCard } from "@/features/prayer/components/prayer-card";
 
 const STATUS_FILTERS = [
@@ -24,6 +25,7 @@ interface PrayerRequest {
 
 export function PrayerClient({ requests }: { requests: PrayerRequest[] }) {
   const [filter, setFilter] = useState("all");
+  const router = useRouter();
 
   const filtered = filter === "all" ? requests : requests.filter((r) => r.status === filter);
 
@@ -68,7 +70,9 @@ export function PrayerClient({ requests }: { requests: PrayerRequest[] }) {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((request) => (
-            <PrayerCard key={request.id} request={request} canManage />
+            <div key={request.id} onClick={() => router.push(`/prayer/${request.id}`)} className="cursor-pointer">
+              <PrayerCard request={request} canManage />
+            </div>
           ))}
         </div>
       )}
