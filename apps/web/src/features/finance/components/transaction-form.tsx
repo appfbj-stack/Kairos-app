@@ -6,23 +6,45 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createTransactionSchema, type CreateTransactionSchema } from "@kairos/finance/schemas";
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, PAYMENT_METHODS } from "@kairos/finance/types";
-import { useCreateTransaction } from "../hooks/use-transactions";
+import { useCreateTransaction, useUpdateTransaction } from "../hooks/use-transactions";
 import { useState } from "react";
+import type { Database } from "@kairos/types";
 
-export function TransactionForm() {
+type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
+
+interface TransactionFormProps {
+  transaction?: Transaction;
+}
+
+export function TransactionForm({ transaction }: TransactionFormProps) {
   const router = useRouter();
   const createTransaction = useCreateTransaction();
-  const [type, setType] = useState<"income" | "expense">("income");
+  const updateTransaction = useUpdateTransaction();
+  const isEditing = !!transaction;
+
+  const [type, setType] = useState<"income" | "expense">(
+    transaction?.type ?? "income"
+  );
 
   const categories = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
   const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<CreateTransactionSchema>({
     resolver: zodResolver(createTransactionSchema),
-    defaultValues: {
-      type: "income",
-      payment_method: "pix",
-      date: new Date().toISOString().split("T")[0],
-    },
+    defaultValues: transaction
+      ? {
+          type: transaction.type,
+          category: transaction.category,
+          amount: transaction.amount,
+          description: transaction.description ?? "",
+          date: transaction.date,
+          payment_method: transaction.payment_method,
+          member_id: transaction.member_id ?? "",
+        }
+      : {
+          type: "income",
+          payment_method: "pix",
+          date: new Date().toISOString().split("T")[0],
+        },
   });
 
   const handleTypeChange = (t: "income" | "expense") => {
@@ -33,14 +55,24 @@ export function TransactionForm() {
 
   const onSubmit = async (data: CreateTransactionSchema) => {
     try {
-      await createTransaction.mutateAsync({
-        ...data,
-        member_id: data.member_id || undefined,
-      });
-      toast.success("Transação registrada!");
-      router.push("/finance");
+      if (isEditing) {
+        await updateTransaction.mutateAsync({
+          id: transaction.id,
+          ...data,
+          member_id: data.member_id || null,
+        });
+        toast.success("Transação atualizada!");
+        router.push("/finance");
+      } else {
+        await createTransaction.mutateAsync({
+          ...data,
+          member_id: data.member_id || undefined,
+        });
+        toast.success("Transação registrada!");
+        router.push("/finance");
+      }
     } catch {
-      toast.error("Erro ao registrar transação");
+      toast.error("Erro ao salvar transação");
     }
   };
 
@@ -130,7 +162,7 @@ export function TransactionForm() {
           Cancelar
         </button>
         <button type="submit" disabled={isSubmitting} className="flex-1 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity">
-          {isSubmitting ? "Salvando..." : "Registrar"}
+          {isSubmitting ? "Salvando..." : isEditing ? "Atualizar" : "Registrar"}
         </button>
       </div>
     </form>

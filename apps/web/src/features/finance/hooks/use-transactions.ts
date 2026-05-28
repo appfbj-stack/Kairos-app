@@ -105,6 +105,50 @@ export function useCreateTransaction() {
   });
 }
 
+export function useUpdateTransaction() {
+  const supabase = createBrowserClient();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...input }: {
+      id: string;
+      type?: "income" | "expense"; category?: string; amount?: number;
+      description?: string; date?: string; member_id?: string | null;
+      payment_method?: "pix" | "cash" | "transfer" | "card";
+    }) => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .update({ ...input, member_id: input.member_id ?? null })
+        .eq("id", id)
+        .select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      void queryClient.invalidateQueries({ queryKey: ["finance-summary"] });
+    },
+  });
+}
+
+export function useTransaction(id: string) {
+  const supabase = createBrowserClient();
+
+  return useQuery({
+    queryKey: ["transaction", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+}
+
 export function useDeleteTransaction() {
   const supabase = createBrowserClient();
   const queryClient = useQueryClient();

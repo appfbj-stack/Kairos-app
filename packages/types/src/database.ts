@@ -46,6 +46,7 @@ export interface Database {
           birthdate: string | null;
           baptism_date: string | null;
           status: "active" | "inactive" | "visitor";
+          cell_id: string | null;
           created_at: string;
           updated_at: string;
           created_by: string;

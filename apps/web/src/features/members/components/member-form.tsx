@@ -20,11 +20,13 @@ const schema = z.object({
   birthdate: z.string().optional(),
   baptism_date: z.string().optional(),
   status: z.enum(["active", "inactive", "visitor"]).default("active"),
+  cell_id: z.string().optional(),
 });
 type FormData = z.infer<typeof schema>;
 
 interface MemberFormProps {
   member?: Member;
+  cells?: { id: string; name: string }[];
 }
 
 const statusOptions = [
@@ -33,7 +35,7 @@ const statusOptions = [
   { value: "visitor", label: "Visitante" },
 ];
 
-export function MemberForm({ member }: MemberFormProps) {
+export function MemberForm({ member, cells = [] }: MemberFormProps) {
   const router = useRouter();
   const createMember = useCreateMember();
   const updateMember = useUpdateMember();
@@ -51,8 +53,9 @@ export function MemberForm({ member }: MemberFormProps) {
           birthdate: member.birthdate ?? "",
           baptism_date: member.baptism_date ?? "",
           status: member.status as FormData["status"],
+          cell_id: member.cell_id ?? "",
         }
-      : { status: "active" },
+      : { status: "active", cell_id: "" },
   });
 
   const nameValue = watch("name");
@@ -66,6 +69,7 @@ export function MemberForm({ member }: MemberFormProps) {
         birthdate: data.birthdate || null,
         baptism_date: data.baptism_date || null,
         status: data.status,
+        cell_id: data.cell_id || null,
       };
 
       if (isEditing) {
@@ -145,6 +149,21 @@ export function MemberForm({ member }: MemberFormProps) {
           ))}
         </select>
       </div>
+
+      {cells.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium mb-1">Célula</label>
+          <select
+            {...register("cell_id")}
+            className="w-full px-3 py-2 rounded-lg border bg-card text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+          >
+            <option value="">Nenhuma</option>
+            {cells.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex gap-3 pt-2">
         <button

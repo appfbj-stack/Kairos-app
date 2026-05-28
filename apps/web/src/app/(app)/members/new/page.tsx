@@ -1,10 +1,14 @@
+import { createServerClient } from "@/lib/supabase/server";
 import { MemberForm } from "@/features/members/components/member-form";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 export const metadata = { title: "Novo Membro — Kairos" };
 
-export default function NewMemberPage() {
+export default async function NewMemberPage() {
+  const supabase = await createServerClient();
+  const { data: cells } = await supabase.from("cells").select("id, name").eq("active", true).order("name");
+
   return (
     <div className="space-y-6 max-w-2xl">
       <div className="flex items-center gap-3">
@@ -17,7 +21,7 @@ export default function NewMemberPage() {
         </div>
       </div>
       <div className="bg-card border rounded-xl p-6">
-        <MemberForm />
+        <MemberForm cells={cells ?? []} />
       </div>
     </div>
   );

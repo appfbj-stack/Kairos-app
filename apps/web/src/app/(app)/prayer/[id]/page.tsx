@@ -42,6 +42,7 @@ export default async function PrayerDetailPage({ params }: { params: Promise<{ i
       <PrayerCard
         request={{ ...request, requester: requester ?? null }}
         canManage={canManage}
+        canDelete={canManage}
       />
     </div>
   );

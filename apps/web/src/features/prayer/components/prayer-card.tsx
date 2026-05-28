@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, CheckCircle, XCircle, User } from "lucide-react";
+import { CheckCircle, XCircle, Trash2, User } from "lucide-react";
 import { formatDate } from "@kairos/utils";
-import { useUpdatePrayerStatus } from "../hooks/use-prayer";
+import { useUpdatePrayerStatus, useDeletePrayer } from "../hooks/use-prayer";
 import { toast } from "sonner";
 
 const STATUS_CONFIG = {
@@ -23,11 +23,13 @@ interface PrayerCardProps {
     requester?: { name: string; avatar_url?: string | null } | null;
   };
   canManage?: boolean;
+  canDelete?: boolean;
 }
 
-export function PrayerCard({ request, canManage = false }: PrayerCardProps) {
+export function PrayerCard({ request, canManage = false, canDelete = false }: PrayerCardProps) {
   const [expanded, setExpanded] = useState(false);
   const updateStatus = useUpdatePrayerStatus();
+  const deletePrayer = useDeletePrayer();
   const status = STATUS_CONFIG[request.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.open;
 
   const handleStatus = async (newStatus: string) => {
@@ -36,6 +38,16 @@ export function PrayerCard({ request, canManage = false }: PrayerCardProps) {
       toast.success("Status atualizado");
     } catch {
       toast.error("Erro ao atualizar status");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Remover este pedido de oração?")) return;
+    try {
+      await deletePrayer.mutateAsync(request.id);
+      toast.success("Pedido removido");
+    } catch {
+      toast.error("Erro ao remover pedido");
     }
   };
 
@@ -81,24 +93,38 @@ export function PrayerCard({ request, canManage = false }: PrayerCardProps) {
         )}
       </div>
 
-      {canManage && request.status === "open" && (
-        <div className="flex gap-2 pt-1">
-          <button
-            onClick={() => handleStatus("answered")}
-            disabled={updateStatus.isPending}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-medium hover:bg-green-500/20 transition-colors disabled:opacity-50"
-          >
-            <CheckCircle className="w-3.5 h-3.5" />
-            Respondido
-          </button>
-          <button
-            onClick={() => handleStatus("closed")}
-            disabled={updateStatus.isPending}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-500/10 text-gray-500 text-xs font-medium hover:bg-gray-500/20 transition-colors disabled:opacity-50"
-          >
-            <XCircle className="w-3.5 h-3.5" />
-            Encerrar
-          </button>
+      {(canManage || canDelete) && (
+        <div className="flex items-center gap-2 pt-1">
+          {canManage && request.status === "open" && (
+            <>
+              <button
+                onClick={() => handleStatus("answered")}
+                disabled={updateStatus.isPending}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 text-green-600 dark:text-green-400 text-xs font-medium hover:bg-green-500/20 transition-colors disabled:opacity-50"
+              >
+                <CheckCircle className="w-3.5 h-3.5" />
+                Respondido
+              </button>
+              <button
+                onClick={() => handleStatus("closed")}
+                disabled={updateStatus.isPending}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-500/10 text-gray-500 text-xs font-medium hover:bg-gray-500/20 transition-colors disabled:opacity-50"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                Encerrar
+              </button>
+            </>
+          )}
+          {canDelete && (
+            <button
+              onClick={handleDelete}
+              disabled={deletePrayer.isPending}
+              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors disabled:opacity-50"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Remover
+            </button>
+          )}
         </div>
       )}
     </div>

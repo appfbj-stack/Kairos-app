@@ -8,10 +8,7 @@ export default async function EditCellPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const supabase = await createServerClient();
 
-  const [{ data: cell }, { data: leaders }] = await Promise.all([
-    supabase.from("cells").select("*").eq("id", id).single(),
-    supabase.from("members").select("id, name").eq("status", "active").order("name"),
-  ]);
+  const { data: cell } = await supabase.from("cells").select("*").eq("id", id).single();
 
   if (!cell) notFound();
 
@@ -26,7 +23,7 @@ export default async function EditCellPage({ params }: { params: Promise<{ id: s
           <p className="text-muted-foreground text-sm">{cell.name}</p>
         </div>
       </div>
-      <CellForm cell={cell} leaders={leaders ?? []} />
+      <CellForm cell={cell} />
     </div>
   );
 }

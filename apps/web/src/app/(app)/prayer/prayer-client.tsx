@@ -71,7 +71,7 @@ export function PrayerClient({ requests }: { requests: PrayerRequest[] }) {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((request) => (
             <div key={request.id} onClick={() => router.push(`/prayer/${request.id}`)} className="cursor-pointer">
-              <PrayerCard request={request} canManage />
+              <PrayerCard request={request} canManage canDelete />
             </div>
           ))}
         </div>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { Trash2, Pencil, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { useTransactions, useDeleteTransaction } from "../hooks/use-transactions";
 import { PAYMENT_METHODS } from "@kairos/finance/types";
@@ -84,12 +85,20 @@ export function TransactionList() {
                     {t.description ?? "—"}
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => handleDelete(t.id)}
-                      className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <Link
+                        href={`/finance/${t.id}/edit`}
+                        className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(t.id)}
+                        className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

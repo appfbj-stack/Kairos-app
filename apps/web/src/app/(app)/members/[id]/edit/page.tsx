@@ -10,8 +10,10 @@ export default async function EditMemberPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const supabase = await createServerClient();
 
-  const { data: member } = await supabase
-    .from("members").select("*").eq("id", id).single();
+  const [{ data: member }, { data: cells }] = await Promise.all([
+    supabase.from("members").select("*").eq("id", id).single(),
+    supabase.from("cells").select("id, name").eq("active", true).order("name"),
+  ]);
 
   if (!member) notFound();
 
@@ -27,7 +29,7 @@ export default async function EditMemberPage({ params }: { params: Promise<{ id:
         </div>
       </div>
       <div className="bg-card border rounded-xl p-6">
-        <MemberForm member={member} />
+        <MemberForm member={member} cells={cells ?? []} />
       </div>
     </div>
   );
