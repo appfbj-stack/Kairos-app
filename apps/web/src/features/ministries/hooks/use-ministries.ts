@@ -70,6 +70,43 @@ export function useUpdateMinistry() {
   });
 }
 
+export function useAddMinistryMember() {
+  const supabase = createBrowserClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ministry_id, member_id, role = "membro" }: { ministry_id: string; member_id: string; role?: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const { data: profile } = await supabase.from("users").select("church_id").eq("id", user.id).single();
+      if (!profile) throw new Error("Perfil não encontrado");
+      const { data, error } = await supabase
+        .from("ministry_members")
+        .insert({ ministry_id, member_id, role, church_id: profile.church_id, created_by: user.id })
+        .select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_d, vars) => {
+      void queryClient.invalidateQueries({ queryKey: ["ministry_members", vars.ministry_id] });
+    },
+  });
+}
+
+export function useRemoveMinistryMember() {
+  const supabase = createBrowserClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ministry_id }: { id: string; ministry_id: string }) => {
+      const { error } = await supabase.from("ministry_members").delete().eq("id", id);
+      if (error) throw error;
+      return ministry_id;
+    },
+    onSuccess: (_d, vars) => {
+      void queryClient.invalidateQueries({ queryKey: ["ministry_members", vars.ministry_id] });
+    },
+  });
+}
+
 export function useDeleteMinistry() {
   const supabase = createBrowserClient();
   const queryClient = useQueryClient();

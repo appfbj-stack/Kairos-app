@@ -1,6 +1,6 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Mail, Phone, Calendar, Droplets } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Calendar, Droplets, CircleDot } from "lucide-react";
 import Link from "next/link";
 import { MemberProfileClient } from "./member-profile-client";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
@@ -16,6 +16,10 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
     .from("members").select("*").eq("id", id).single();
 
   if (!member) notFound();
+
+  const cell = member.cell_id
+    ? (await supabase.from("cells").select("id, name").eq("id", member.cell_id).single()).data
+    : null;
 
   const statusConfig = {
     active: { label: "Ativo", className: "bg-green-500/20 text-green-600 dark:text-green-400" },
@@ -82,6 +86,17 @@ export default async function MemberProfilePage({ params }: { params: Promise<{ 
               <div>
                 <p className="text-xs text-muted-foreground">Batismo</p>
                 <p className="text-sm font-medium">{formatDate(member.baptism_date)}</p>
+              </div>
+            </div>
+          )}
+          {cell && (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <CircleDot className="w-4 h-4 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Célula</p>
+                <Link href={`/cells/${cell.id}`} className="text-sm font-medium hover:text-primary hover:underline transition-colors">
+                  {cell.name}
+                </Link>
               </div>
             </div>
           )}
