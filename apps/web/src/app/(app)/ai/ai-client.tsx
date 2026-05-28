@@ -9,10 +9,12 @@ interface Message {
 }
 
 const QUICK_PROMPTS = [
-  "Sugira uma mensagem bíblica para este domingo",
-  "Como posso motivar os líderes de células?",
-  "Crie uma oração para o culto de hoje",
-  "Quais são estratégias para crescimento de membros?",
+  { label: "📖 Sermão", text: "Crie um esboço de sermão sobre fé e perseverança com 3 pontos e versículos" },
+  { label: "🙏 Oração", text: "Escreva uma oração de abertura para o culto de domingo" },
+  { label: "📱 Post", text: "Crie uma postagem inspiradora para o Instagram da igreja" },
+  { label: "📋 Devocional", text: "Gere o devocional de hoje com versículo, reflexão e aplicação prática" },
+  { label: "💬 Comunicado", text: "Redija um comunicado cordial para os membros sobre dízimo e oferta" },
+  { label: "🌱 Células", text: "Como posso motivar os líderes de células a crescerem?" },
 ];
 
 interface AiClientProps {
@@ -48,7 +50,8 @@ export function AiClient({ churchName, userName, userRole }: AiClientProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: next,
-          context: { churchName, userRole, activeModule: "dashboard" },
+          context: { churchName, userRole },
+          module: "chat",
         }),
       });
       const data = await res.json() as { content?: string; error?: string };
@@ -102,11 +105,12 @@ export function AiClient({ churchName, userName, userRole }: AiClientProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
               {QUICK_PROMPTS.map((p) => (
                 <button
-                  key={p}
-                  onClick={() => void send(p)}
+                  key={p.label}
+                  onClick={() => void send(p.text)}
                   className="text-left px-4 py-3 rounded-xl border bg-card text-sm hover:border-primary/50 hover:bg-primary/5 transition-colors"
                 >
-                  {p}
+                  <span className="font-medium block">{p.label}</span>
+                  <span className="text-xs text-muted-foreground line-clamp-1">{p.text}</span>
                 </button>
               ))}
             </div>

@@ -10,9 +10,12 @@ import type { ChatRoom } from "@kairos/chat/types";
 
 interface ChatClientProps {
   currentUserId: string;
+  churchName?: string;
+  userName?: string;
+  userRole?: string;
 }
 
-export function ChatClient({ currentUserId }: ChatClientProps) {
+export function ChatClient({ currentUserId, churchName, userName, userRole }: ChatClientProps) {
   const { data: rooms = [], isLoading } = useRooms();
   const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -36,7 +39,13 @@ export function ChatClient({ currentUserId }: ChatClientProps) {
         />
 
         {activeRoom ? (
-          <ChatArea room={activeRoom} currentUserId={currentUserId} />
+          <ChatArea
+            room={activeRoom}
+            currentUserId={currentUserId}
+            churchName={churchName}
+            userName={userName}
+            userRole={userRole}
+          />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
             <div className="mb-4 rounded-full bg-muted p-5">

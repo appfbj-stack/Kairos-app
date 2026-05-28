@@ -1,143 +1,188 @@
-import type { AIProvider, AIRequest, AIResponse } from "@kairos/types";
+/**
+ * Kairos AI — serviço central de inteligência artificial
+ * Roteamento: Gemini 1.5 Flash (principal) → Gemini 8B (fallback 1) → DeepSeek (fallback 2)
+ */
 
-const PROVIDER_PRIORITY: AIProvider[] = ["openrouter", "openai", "claude", "gemini", "ollama"];
+export type AIModule =
+  | "chat"       // Gemini Flash — rápido, gratuito
+  | "social"     // Gemini Flash — postagens
+  | "devotional" // Gemini Flash — devocional
+  | "support"    // Gemini Flash — suporte
+  | "calendar"   // Gemini Flash — agenda
+  | "sermon"     // DeepSeek — raciocínio longo
+  | "studies"    // DeepSeek — estudos bíblicos
+  | "office"     // DeepSeek — documentos
+  | "finance";   // DeepSeek — relatórios
 
-export class KairosAI {
-  private static buildSystemPrompt(request: AIRequest): string {
-    const { context } = request;
-    const parts = [
-      "Você é o Kairos AI, assistente pastoral inteligente.",
-      "Responda sempre em português brasileiro.",
-      "Seja respeitoso, bíblico e edificante.",
-    ];
+export interface KairosContext {
+  churchName: string;
+  userName?: string;
+  userRole?: string;
+  activeModule?: AIModule;
+  activeModules?: string[];
+  history?: Array<{ role: "user" | "assistant"; content: string }>;
+}
 
-    if (context?.churchName) parts.push(`Igreja: ${context.churchName}`);
-    if (context?.userRole) parts.push(`Papel do usuário: ${context.userRole}`);
-    if (context?.activeModule) parts.push(`Módulo ativo: ${context.activeModule}`);
+export interface KairosMessage {
+  role: "user" | "assistant";
+  content: string;
+}
 
-    return parts.join("\n");
-  }
+// ─── Routing por módulo ─────────────────────────────────────────────────────
 
-  static async complete(request: AIRequest): Promise<AIResponse> {
-    const provider = request.provider ?? PROVIDER_PRIORITY[0]!;
-    const systemMessage = { role: "system" as const, content: this.buildSystemPrompt(request) };
-    const messages = [systemMessage, ...request.messages];
+const GEMINI_MODULES: AIModule[] = ["chat", "social", "devotional", "support", "calendar"];
+const DEEPSEEK_MODULES: AIModule[] = ["sermon", "studies", "office", "finance"];
 
-    switch (provider) {
-      case "openrouter":
-        return this.callOpenRouter(messages, request);
-      case "openai":
-        return this.callOpenAI(messages, request);
-      case "claude":
-        return this.callClaude(messages, request);
-      default:
-        return this.callOpenRouter(messages, request);
+function pickProvider(module: AIModule): "gemini" | "deepseek" {
+  if (DEEPSEEK_MODULES.includes(module)) return "deepseek";
+  return "gemini";
+}
+
+// ─── System Prompt ──────────────────────────────────────────────────────────
+
+export function buildSystemPrompt(ctx: KairosContext): string {
+  return `Você é a Kairos AI, assistente oficial da ${ctx.churchName}.
+
+IDENTIDADE
+Seu nome é Kairos. Responda sempre com acolhimento, sabedoria e amor cristão.
+Tom: amigável, pastoral, direto e encorajador.
+Idioma: português brasileiro.
+
+CONTEXTO DO USUÁRIO
+Nome: ${ctx.userName ?? "Visitante"}
+Papel: ${ctx.userRole ?? "member"}
+Módulo: ${ctx.activeModule ?? "geral"}
+Módulos ativos: ${ctx.activeModules?.join(", ") ?? "todos"}
+
+REGRAS OBRIGATÓRIAS
+1. Responda sempre em português brasileiro.
+2. Respostas devem ser objetivas e práticas (máx 3 parágrafos no chat).
+3. Para temas pastorais, use linguagem bíblica natural.
+4. Nunca invente dados — use apenas o contexto fornecido.
+5. Se não souber, diga claramente e sugira falar com um líder.
+6. Use emojis com moderação (1-2 por mensagem).
+7. Termine com uma bênção ou encorajamento quando adequado.
+
+ESPECIALIDADES
+- Sermões, esboços e devocionais
+- Postagens para redes sociais da igreja
+- Comunicados, avisos e mensagens pastorais
+- Dúvidas sobre membros, células e ministérios
+- Apoio à gestão financeira com linguagem pastoral
+- Planos de leitura e estudos bíblicos
+- Suporte ao uso da plataforma Kairos
+- Orações e reflexões bíblicas`;
+}
+
+// ─── Providers ──────────────────────────────────────────────────────────────
+
+async function callGemini(
+  model: "gemini-1.5-flash" | "gemini-1.5-flash-8b",
+  system: string,
+  messages: KairosMessage[]
+): Promise<string> {
+  const apiKey = process.env.GOOGLE_AI_API_KEY;
+  if (!apiKey) throw new Error("GOOGLE_AI_API_KEY não configurada");
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents: messages.map((m) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        })),
+        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+      }),
+      signal: AbortSignal.timeout(15_000),
     }
-  }
+  );
 
-  private static async callOpenRouter(messages: AIRequest["messages"], request: AIRequest): Promise<AIResponse> {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://kairos.app",
-        "X-Title": "Kairos AI",
-      },
-      body: JSON.stringify({
-        model: request.model ?? "anthropic/claude-3.5-sonnet",
-        messages,
-        max_tokens: request.maxTokens ?? 2048,
-        temperature: request.temperature ?? 0.7,
-      }),
-    });
+  if (!res.ok) throw new Error(`Gemini ${model} error: ${res.status}`);
+  const data = await res.json() as {
+    candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
+  };
+  return data.candidates[0]?.content.parts[0]?.text ?? "";
+}
 
-    if (!response.ok) throw new Error(`OpenRouter error: ${response.statusText}`);
+async function callDeepSeek(system: string, messages: KairosMessage[]): Promise<string> {
+  const apiKey = process.env.DEEPSEEK_API_KEY;
+  if (!apiKey) throw new Error("DEEPSEEK_API_KEY não configurada");
 
-    const data = await response.json() as {
-      choices: Array<{ message: { content: string } }>;
-      model: string;
-      usage: { prompt_tokens: number; completion_tokens: number };
-    };
+  const res = await fetch("https://api.deepseek.com/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "deepseek-chat",
+      messages: [
+        { role: "system", content: system },
+        ...messages.map((m) => ({ role: m.role, content: m.content })),
+      ],
+      temperature: 0.7,
+      max_tokens: 2048,
+    }),
+    signal: AbortSignal.timeout(20_000),
+  });
 
-    return {
-      content: data.choices[0]?.message.content ?? "",
-      provider: "openrouter",
-      model: data.model,
-      usage: {
-        inputTokens: data.usage.prompt_tokens,
-        outputTokens: data.usage.completion_tokens,
-      },
-    };
-  }
+  if (!res.ok) throw new Error(`DeepSeek error: ${res.status}`);
+  const data = await res.json() as {
+    choices: Array<{ message: { content: string } }>;
+  };
+  return data.choices[0]?.message.content ?? "";
+}
 
-  private static async callOpenAI(messages: AIRequest["messages"], request: AIRequest): Promise<AIResponse> {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: request.model ?? "gpt-4o-mini",
-        messages,
-        max_tokens: request.maxTokens ?? 2048,
-        temperature: request.temperature ?? 0.7,
-      }),
-    });
+// ─── Função principal ────────────────────────────────────────────────────────
 
-    if (!response.ok) throw new Error(`OpenAI error: ${response.statusText}`);
+export async function kairosAI(
+  userMessage: string,
+  ctx: KairosContext,
+  module: AIModule = "chat"
+): Promise<string> {
+  const system = buildSystemPrompt({ ...ctx, activeModule: module });
+  const history = ctx.history ?? [];
+  const messages: KairosMessage[] = [
+    ...history,
+    { role: "user", content: userMessage },
+  ];
 
-    const data = await response.json() as {
-      choices: Array<{ message: { content: string } }>;
-      model: string;
-      usage: { prompt_tokens: number; completion_tokens: number };
-    };
+  const provider = pickProvider(module);
 
-    return {
-      content: data.choices[0]?.message.content ?? "",
-      provider: "openai",
-      model: data.model,
-      usage: {
-        inputTokens: data.usage.prompt_tokens,
-        outputTokens: data.usage.completion_tokens,
-      },
-    };
-  }
-
-  private static async callClaude(messages: AIRequest["messages"], request: AIRequest): Promise<AIResponse> {
-    const [system, ...rest] = messages;
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY!,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: request.model ?? "claude-sonnet-4-6",
-        system: system?.content,
-        messages: rest,
-        max_tokens: request.maxTokens ?? 2048,
-      }),
-    });
-
-    if (!response.ok) throw new Error(`Claude error: ${response.statusText}`);
-
-    const data = await response.json() as {
-      content: Array<{ text: string }>;
-      model: string;
-      usage: { input_tokens: number; output_tokens: number };
-    };
-
-    return {
-      content: data.content[0]?.text ?? "",
-      provider: "claude",
-      model: data.model,
-      usage: {
-        inputTokens: data.usage.input_tokens,
-        outputTokens: data.usage.output_tokens,
-      },
-    };
+  // Cadeia de fallback: primário → Gemini 8B → DeepSeek → mensagem de erro
+  if (provider === "gemini") {
+    try {
+      return await callGemini("gemini-1.5-flash", system, messages);
+    } catch (e1) {
+      console.warn("Gemini Flash falhou, tentando Flash-8B:", e1);
+      try {
+        return await callGemini("gemini-1.5-flash-8b", system, messages);
+      } catch (e2) {
+        console.warn("Gemini 8B falhou, tentando DeepSeek:", e2);
+        try {
+          return await callDeepSeek(system, messages);
+        } catch (e3) {
+          console.error("Todos os providers falharam:", e3);
+          throw new Error("Serviço de IA temporariamente indisponível.");
+        }
+      }
+    }
+  } else {
+    // DeepSeek primeiro, fallback Gemini
+    try {
+      return await callDeepSeek(system, messages);
+    } catch (e1) {
+      console.warn("DeepSeek falhou, tentando Gemini Flash:", e1);
+      try {
+        return await callGemini("gemini-1.5-flash", system, messages);
+      } catch (e2) {
+        console.error("Todos os providers falharam:", e2);
+        throw new Error("Serviço de IA temporariamente indisponível.");
+      }
+    }
   }
 }

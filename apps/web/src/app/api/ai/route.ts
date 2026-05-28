@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { kairosAI, type AIModule } from "@kairos/services-ai";
 
 export async function POST(req: NextRequest) {
   try {
@@ -7,57 +8,44 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-    const body = await req.json() as { messages: Array<{ role: string; content: string }>; context?: Record<string, string> };
-    const { messages, context } = body;
+    const { data: profile } = await supabase
+      .from("users")
+      .select("name, role, church_id")
+      .eq("id", user.id)
+      .single();
 
-    const systemParts = [
-      "Você é o Kairos AI, assistente pastoral inteligente da plataforma Kairos.",
-      "Responda sempre em português brasileiro de forma respeitosa, bíblica e edificante.",
-      "Seja conciso mas completo. Use exemplos bíblicos quando relevante.",
-    ];
-    if (context?.churchName) systemParts.push(`Igreja: ${context.churchName}`);
-    if (context?.userRole) systemParts.push(`Papel do usuário: ${context.userRole}`);
+    const { data: church } = profile?.church_id
+      ? await supabase.from("churches").select("name, active_modules").eq("id", profile.church_id).single()
+      : { data: null };
 
-    // Tenta OpenRouter primeiro, depois fallback para resposta simples
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({
-        content: "Configure a variável OPENROUTER_API_KEY para habilitar o Kairos AI.",
-      });
-    }
-
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://kairos.app",
-        "X-Title": "Kairos AI",
-      },
-      body: JSON.stringify({
-        model: "anthropic/claude-3.5-sonnet",
-        messages: [
-          { role: "system", content: systemParts.join("\n") },
-          ...messages,
-        ],
-        max_tokens: 2048,
-        temperature: 0.7,
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      console.error("OpenRouter error:", err);
-      return NextResponse.json({ error: "Erro ao chamar IA", details: err }, { status: 500 });
-    }
-
-    const data = await response.json() as {
-      choices: Array<{ message: { content: string } }>;
+    const body = await req.json() as {
+      messages: Array<{ role: string; content: string }>;
+      context?: { churchName?: string; userRole?: string; activeModule?: string };
+      module?: AIModule;
     };
-    const content = data.choices[0]?.message?.content ?? "Sem resposta.";
+
+    const { messages, context, module = "chat" } = body;
+    const lastMessage = messages.at(-1);
+    if (!lastMessage) return NextResponse.json({ error: "Mensagem vazia" }, { status: 400 });
+
+    const history = messages.slice(0, -1).map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
+
+    const content = await kairosAI(lastMessage.content, {
+      churchName: church?.name ?? context?.churchName ?? "Kairos",
+      userName: profile?.name,
+      userRole: profile?.role ?? context?.userRole,
+      activeModule: module,
+      activeModules: (church?.active_modules as string[] | undefined) ?? [],
+      history,
+    }, module);
+
     return NextResponse.json({ content });
   } catch (err) {
     console.error("AI route error:", err);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    const message = err instanceof Error ? err.message : "Erro interno";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
