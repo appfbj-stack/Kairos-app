@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { z } from "zod";
-import { useCreateEvent } from "../hooks/use-events";
+import { useCreateEvent, useUpdateEvent } from "../hooks/use-events";
 
 const EVENT_TYPES = [
   { value: "culto", label: "Culto" },
@@ -41,6 +41,7 @@ interface EventFormProps {
 export function EventForm({ event }: EventFormProps) {
   const router = useRouter();
   const createEvent = useCreateEvent();
+  const updateEvent = useUpdateEvent();
   const isEditing = !!event;
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
@@ -59,16 +60,23 @@ export function EventForm({ event }: EventFormProps) {
 
   const onSubmit = async (data: FormData) => {
     try {
-      await createEvent.mutateAsync({
+      const payload = {
         title: data.title,
         description: data.description,
         start_at: new Date(data.start_at).toISOString(),
         end_at: data.end_at ? new Date(data.end_at).toISOString() : undefined,
         location: data.location,
         type: data.type,
-      });
-      toast.success("Evento criado!");
-      router.push("/events");
+      };
+      if (isEditing) {
+        await updateEvent.mutateAsync({ id: event.id, ...payload });
+        toast.success("Evento atualizado!");
+        router.push(`/events/${event.id}`);
+      } else {
+        await createEvent.mutateAsync(payload);
+        toast.success("Evento criado!");
+        router.push("/events");
+      }
     } catch {
       toast.error("Erro ao salvar evento");
     }

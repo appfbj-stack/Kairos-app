@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Play, Headphones, FileText, BookOpen, Calendar } from "lucide-react";
 import { formatDate } from "@kairos/utils";
 
@@ -19,7 +20,7 @@ export function SermonCard({ sermon }: SermonCardProps) {
   const hasMedia = sermon.video_url || sermon.audio_url || sermon.pdf_url;
 
   return (
-    <div className="rounded-lg border bg-card p-4 hover:border-primary/50 transition-colors">
+    <Link href={`/sermons/${sermon.id}`} className="block rounded-lg border bg-card p-4 hover:border-primary/50 transition-colors">
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="min-w-0">
           {sermon.series && (
@@ -85,6 +86,6 @@ export function SermonCard({ sermon }: SermonCardProps) {
           )}
         </div>
       )}
-    </div>
+    </Link>
   );
 }

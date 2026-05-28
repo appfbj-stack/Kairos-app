@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, Users, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useDeleteMinistry } from "@/features/ministries/hooks/use-ministries";
 
@@ -18,6 +19,7 @@ interface Ministry {
 export function MinistriesClient({ ministries: initial }: { ministries: Ministry[] }) {
   const [ministries, setMinistries] = useState(initial);
   const deleteMinistry = useDeleteMinistry();
+  const router = useRouter();
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Excluir o ministério "${name}"?`)) return;
@@ -61,7 +63,8 @@ export function MinistriesClient({ ministries: initial }: { ministries: Ministry
           {ministries.map((ministry) => (
             <div
               key={ministry.id}
-              className="rounded-lg border bg-card p-4 hover:border-primary/50 transition-colors relative group"
+              onClick={() => router.push(`/ministries/${ministry.id}`)}
+              className="rounded-lg border bg-card p-4 hover:border-primary/50 transition-colors relative group cursor-pointer"
             >
               <div className="flex items-start justify-between mb-3">
                 <div

@@ -60,6 +60,28 @@ export function useCreateEvent() {
   });
 }
 
+export function useUpdateEvent() {
+  const supabase = createBrowserClient();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...input }: {
+      id: string; title: string; description?: string;
+      start_at: string; end_at?: string; location?: string; type: string;
+    }) => {
+      const { data, error } = await supabase
+        .from("events")
+        .update({ ...input, description: input.description || null, end_at: input.end_at || null, location: input.location || null })
+        .eq("id", id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      void queryClient.invalidateQueries({ queryKey: ["events"] });
+      void queryClient.invalidateQueries({ queryKey: ["event", data.id] });
+    },
+  });
+}
+
 export function useDeleteEvent() {
   const supabase = createBrowserClient();
   const queryClient = useQueryClient();

@@ -45,11 +45,12 @@ export function MinistryForm({ ministry, leaders = [] }: MinistryFormProps) {
       if (isEditing) {
         await updateMinistry.mutateAsync({ id: ministry.id, ...data });
         toast.success("Ministério atualizado!");
+        router.push(`/ministries/${ministry.id}`);
       } else {
         await createMinistry.mutateAsync(data);
         toast.success("Ministério criado!");
+        router.push("/ministries");
       }
-      router.push("/ministries");
     } catch {
       toast.error("Erro ao salvar ministério");
     }

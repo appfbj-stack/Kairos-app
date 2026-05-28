@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Calendar, MapPin, Clock, Trash2 } from "lucide-react";
+import { Plus, Calendar, MapPin, Clock, Trash2, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useDeleteEvent } from "@/features/events/hooks/use-events";
 import { formatDate } from "@kairos/utils";
@@ -39,6 +40,7 @@ export function EventsClient({ events: initial }: { events: ChurchEvent[] }) {
   const [events, setEvents] = useState(initial);
   const [filter, setFilter] = useState<"all" | "upcoming">("upcoming");
   const deleteEvent = useDeleteEvent();
+  const router = useRouter();
 
   const now = new Date().toISOString();
   const filtered = filter === "upcoming"
@@ -101,7 +103,8 @@ export function EventsClient({ events: initial }: { events: ChurchEvent[] }) {
             return (
               <div
                 key={event.id}
-                className={`rounded-lg border bg-card p-4 group ${isPast ? "opacity-60" : "hover:border-primary/50"} transition-colors`}
+                onClick={() => !isPast && router.push(`/events/${event.id}`)}
+                className={`rounded-lg border bg-card p-4 group transition-colors ${isPast ? "opacity-60" : "hover:border-primary/50 cursor-pointer"}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 min-w-0">
