@@ -7,44 +7,40 @@ import {
   Users,
   CircleDot,
   MessageSquare,
-  Music,
   DollarSign,
   HeartHandshake,
-  BookOpen,
   Calendar,
   Church,
   Settings,
   ChevronLeft,
   Mic2,
-  BookMarked,
-  GraduationCap,
-  Boxes,
+  Sparkles,
   HandHeart,
+  Newspaper,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
-const navItems = [
+const mainNav = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/members", icon: Users, label: "Membros" },
   { href: "/cells", icon: CircleDot, label: "Células" },
-  { href: "/chat", icon: MessageSquare, label: "Chat" },
-  { href: "/worship", icon: Music, label: "Louvor" },
+  { href: "/ministries", icon: Church, label: "Ministérios" },
+  { href: "/events", icon: Calendar, label: "Eventos" },
   { href: "/finance", icon: DollarSign, label: "Finanças" },
   { href: "/prayer", icon: HeartHandshake, label: "Oração" },
   { href: "/sermons", icon: Mic2, label: "Sermões" },
-  { href: "/devotional", icon: BookOpen, label: "Devocionais" },
-  { href: "/studies", icon: GraduationCap, label: "Estudos" },
-  { href: "/calendar", icon: Calendar, label: "Agenda" },
-  { href: "/ministries", icon: Church, label: "Ministérios" },
   { href: "/volunteers", icon: HandHeart, label: "Voluntários" },
-  { href: "/assets", icon: Boxes, label: "Patrimônio" },
-  { href: "/social", icon: BookMarked, label: "Mural" },
+  { href: "/social", icon: Newspaper, label: "Mural" },
+  { href: "/chat", icon: MessageSquare, label: "Chat" },
+  { href: "/ai", icon: Sparkles, label: "Kairos AI" },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ role }: { role?: string }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const isAdmin = role === "super_admin";
 
   return (
     <aside
@@ -53,23 +49,26 @@ export function AppSidebar() {
         collapsed ? "w-16" : "w-64"
       )}
     >
-      <div className="flex items-center justify-between px-4 py-5 border-b border-sidebar-border">
+      {/* Logo */}
+      <div className="flex items-center justify-between px-4 py-5 border-b border-sidebar-border shrink-0">
         {!collapsed && (
-          <span className="text-xl font-bold text-primary">Kairos</span>
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm">K</div>
+            <span className="text-lg font-bold">Kairos</span>
+          </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="ml-auto p-1.5 rounded-md hover:bg-sidebar-accent text-sidebar-foreground transition-colors"
         >
-          <ChevronLeft
-            className={cn("w-4 h-4 transition-transform", collapsed && "rotate-180")}
-          />
+          <ChevronLeft className={cn("w-4 h-4 transition-transform", collapsed && "rotate-180")} />
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-4 space-y-1 px-2">
-        {navItems.map(({ href, icon: Icon, label }) => {
-          const active = pathname.startsWith(href);
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto py-3 space-y-0.5 px-2">
+        {mainNav.map(({ href, icon: Icon, label }) => {
+          const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
           return (
             <Link
               key={href}
@@ -88,10 +87,30 @@ export function AppSidebar() {
         })}
       </nav>
 
-      <div className="border-t border-sidebar-border p-2">
+      {/* Bottom */}
+      <div className="border-t border-sidebar-border p-2 space-y-0.5 shrink-0">
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              pathname.startsWith("/admin")
+                ? "bg-primary text-primary-foreground"
+                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            )}
+          >
+            <ShieldCheck className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Super Admin</span>}
+          </Link>
+        )}
         <Link
           href="/settings"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+            pathname === "/settings"
+              ? "bg-primary text-primary-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          )}
         >
           <Settings className="w-4 h-4 shrink-0" />
           {!collapsed && <span>Configurações</span>}

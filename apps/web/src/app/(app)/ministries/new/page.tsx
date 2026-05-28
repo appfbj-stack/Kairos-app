@@ -4,9 +4,9 @@ import { MinistryForm } from "@/features/ministries/components/ministry-form";
 export default async function NewMinistryPage() {
   const supabase = await createServerClient();
   const { data: leaders } = await supabase
-    .from("users")
+    .from("members")
     .select("id, name")
-    .in("role", ["pastor", "leader", "church_admin"])
+    .eq("status", "active")
     .order("name");
 
   return (

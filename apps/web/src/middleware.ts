@@ -30,11 +30,18 @@ export async function middleware(request: NextRequest) {
 
   const isPublic = publicRoutes.some((r) => pathname.startsWith(r));
 
+  // Não autenticado → vai pro login
   if (!user && !isPublic) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  // Autenticado em página pública → vai pro dashboard
   if (user && isPublic) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Rota raiz → dashboard
+  if (pathname === "/") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
