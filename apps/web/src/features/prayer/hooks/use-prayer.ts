@@ -48,12 +48,13 @@ export function useCreatePrayer() {
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("users")
         .select("church_id")
         .eq("id", user.id)
         .single();
-      if (!profile) throw new Error("Perfil não encontrado");
+      if (profileError || !profile) throw new Error("Perfil não encontrado. Faça logout e entre novamente.");
+      if (!profile.church_id) throw new Error("Igreja não configurada no perfil. Entre em contato com o suporte.");
       const { data, error } = await supabase
         .from("prayer_requests")
         .insert({

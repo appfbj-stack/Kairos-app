@@ -28,8 +28,9 @@ export function PrayerForm() {
       await createPrayer.mutateAsync(data);
       toast.success("Pedido de oração enviado!");
       router.push("/prayer");
-    } catch {
-      toast.error("Erro ao enviar pedido");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(msg || "Erro ao enviar pedido");
     }
   };
 
