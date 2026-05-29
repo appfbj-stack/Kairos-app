@@ -6,13 +6,11 @@ RUN npm install -g pnpm@10
 FROM base AS deps
 WORKDIR /app
 
-# Copia apenas os manifestos para cache eficiente
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/types/package.json ./packages/types/
 COPY packages/ui/package.json ./packages/ui/
 COPY packages/utils/package.json ./packages/utils/
-COPY packages/sdk/package.json ./packages/sdk/
 COPY modules/cells/package.json ./modules/cells/
 COPY modules/chat/package.json ./modules/chat/
 COPY modules/events/package.json ./modules/events/
@@ -32,7 +30,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Variáveis necessárias no build (valores ficam em runtime via env do Dokploy)
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 ARG NEXT_PUBLIC_APP_URL
