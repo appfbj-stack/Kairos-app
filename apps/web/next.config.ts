@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   transpilePackages: [
     "@kairos/ui", "@kairos/utils", "@kairos/types",
     "@kairos/services-ai", "@kairos/chat",
