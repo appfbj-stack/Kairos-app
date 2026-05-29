@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Pin, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Pin, Trash2, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { MemberAvatar } from "@/features/members/components/member-avatar";
 import { POST_TYPES, REACTIONS, useToggleReaction, useDeletePost, useTogglePinPost } from "../hooks/use-mural";
 import { toast } from "sonner";
@@ -74,6 +75,12 @@ export function MuralPostCard({ post, currentUserId, canManage }: Props) {
 
   return (
     <div className={`bg-card border rounded-xl p-5 space-y-4 ${post.pinned ? "border-primary/40 bg-primary/3" : ""}`}>
+      {/* Link para detalhe */}
+      <Link href={`/social/${post.id}`} className="block -mx-1 px-1 -mt-1 pt-0.5 hover:text-primary transition-colors group">
+        <span className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-primary mb-2">
+          <ExternalLink className="w-3 h-3" /> Ver publicação completa
+        </span>
+      </Link>
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
