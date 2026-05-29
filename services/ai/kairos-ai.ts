@@ -1,18 +1,24 @@
 /**
  * Kairos AI — serviço central de inteligência artificial
- * Roteamento: Gemini 1.5 Flash (principal) → Gemini 8B (fallback 1) → DeepSeek (fallback 2)
+ *
+ * Roteamento por módulo:
+ *   Chat/Social/Devocional → google/gemini-flash-1.5 (via OpenRouter)
+ *   Sermão/Estudos/Docs    → deepseek/deepseek-chat  (via OpenRouter)
+ *
+ * Cadeia de fallback:
+ *   OpenRouter (principal) → Gemini direto → DeepSeek direto → erro
  */
 
 export type AIModule =
-  | "chat"       // Gemini Flash — rápido, gratuito
-  | "social"     // Gemini Flash — postagens
-  | "devotional" // Gemini Flash — devocional
-  | "support"    // Gemini Flash — suporte
-  | "calendar"   // Gemini Flash — agenda
-  | "sermon"     // DeepSeek — raciocínio longo
-  | "studies"    // DeepSeek — estudos bíblicos
-  | "office"     // DeepSeek — documentos
-  | "finance";   // DeepSeek — relatórios
+  | "chat"
+  | "social"
+  | "devotional"
+  | "support"
+  | "calendar"
+  | "sermon"
+  | "studies"
+  | "office"
+  | "finance";
 
 export interface KairosContext {
   churchName: string;
@@ -28,45 +34,46 @@ export interface KairosMessage {
   content: string;
 }
 
-// ─── Routing por módulo ─────────────────────────────────────────────────────
+// ─── Modelos por tipo de tarefa ──────────────────────────────────────────────
 
-const GEMINI_MODULES: AIModule[] = ["chat", "social", "devotional", "support", "calendar"];
-const DEEPSEEK_MODULES: AIModule[] = ["sermon", "studies", "office", "finance"];
+const FAST_MODULES: AIModule[] = ["chat", "social", "devotional", "support", "calendar"];
 
-function pickProvider(module: AIModule): "gemini" | "deepseek" {
-  if (DEEPSEEK_MODULES.includes(module)) return "deepseek";
-  return "gemini";
+/** Retorna o modelo OpenRouter ideal para cada tipo de tarefa */
+function openRouterModel(module: AIModule): string {
+  return FAST_MODULES.includes(module)
+    ? "google/gemini-flash-1.5"   // rápido, gratuito, 1M ctx
+    : "deepseek/deepseek-chat";   // raciocínio longo e documentos
 }
 
-// ─── System Prompt ──────────────────────────────────────────────────────────
+// ─── System Prompt ───────────────────────────────────────────────────────────
 
 export function buildSystemPrompt(ctx: KairosContext): string {
   return `Você é a Kairos AI, assistente oficial da ${ctx.churchName}.
 
 IDENTIDADE
-Seu nome é Kairos. Responda sempre com acolhimento, sabedoria e amor cristão.
+Seu nome é Kairos. Responda com acolhimento, sabedoria e amor cristão.
 Tom: amigável, pastoral, direto e encorajador.
 Idioma: português brasileiro.
 
-CONTEXTO DO USUÁRIO
-Nome: ${ctx.userName ?? "Visitante"}
+CONTEXTO
+Nome do usuário: ${ctx.userName ?? "Visitante"}
 Papel: ${ctx.userRole ?? "member"}
-Módulo: ${ctx.activeModule ?? "geral"}
-Módulos ativos: ${ctx.activeModules?.join(", ") ?? "todos"}
+Módulo ativo: ${ctx.activeModule ?? "geral"}
+Módulos da igreja: ${ctx.activeModules?.join(", ") ?? "todos"}
 
-REGRAS OBRIGATÓRIAS
+REGRAS
 1. Responda sempre em português brasileiro.
-2. Respostas devem ser objetivas e práticas (máx 3 parágrafos no chat).
-3. Para temas pastorais, use linguagem bíblica natural.
+2. Seja objetivo e prático (máx. 3 parágrafos no chat).
+3. Use linguagem bíblica natural em temas pastorais.
 4. Nunca invente dados — use apenas o contexto fornecido.
-5. Se não souber, diga claramente e sugira falar com um líder.
+5. Se não souber, diga e sugira falar com um líder.
 6. Use emojis com moderação (1-2 por mensagem).
-7. Termine com uma bênção ou encorajamento quando adequado.
+7. Termine com bênção ou encorajamento quando adequado.
 
 ESPECIALIDADES
 - Sermões, esboços e devocionais
 - Postagens para redes sociais da igreja
-- Comunicados, avisos e mensagens pastorais
+- Comunicados, avisos e cartas pastorais
 - Dúvidas sobre membros, células e ministérios
 - Apoio à gestão financeira com linguagem pastoral
 - Planos de leitura e estudos bíblicos
@@ -74,7 +81,48 @@ ESPECIALIDADES
 - Orações e reflexões bíblicas`;
 }
 
-// ─── Providers ──────────────────────────────────────────────────────────────
+// ─── Provider: OpenRouter ─────────────────────────────────────────────────────
+
+async function callOpenRouter(
+  model: string,
+  system: string,
+  messages: KairosMessage[]
+): Promise<string> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error("OPENROUTER_API_KEY não configurada");
+
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://kairos.app",
+      "X-Title": "Kairos AI",
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: system },
+        ...messages.map((m) => ({ role: m.role, content: m.content })),
+      ],
+      temperature: 0.7,
+      max_tokens: 2048,
+    }),
+    signal: AbortSignal.timeout(20_000),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`OpenRouter ${model} error ${res.status}: ${err}`);
+  }
+
+  const data = await res.json() as {
+    choices: Array<{ message: { content: string } }>;
+  };
+  return data.choices[0]?.message?.content ?? "";
+}
+
+// ─── Provider: Gemini direto (fallback) ──────────────────────────────────────
 
 async function callGemini(
   model: "gemini-1.5-flash" | "gemini-1.5-flash-8b",
@@ -108,6 +156,8 @@ async function callGemini(
   return data.candidates[0]?.content.parts[0]?.text ?? "";
 }
 
+// ─── Provider: DeepSeek direto (fallback) ────────────────────────────────────
+
 async function callDeepSeek(system: string, messages: KairosMessage[]): Promise<string> {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) throw new Error("DEEPSEEK_API_KEY não configurada");
@@ -137,7 +187,7 @@ async function callDeepSeek(system: string, messages: KairosMessage[]): Promise<
   return data.choices[0]?.message.content ?? "";
 }
 
-// ─── Função principal ────────────────────────────────────────────────────────
+// ─── Função principal com cadeia de fallback ──────────────────────────────────
 
 export async function kairosAI(
   userMessage: string,
@@ -151,38 +201,41 @@ export async function kairosAI(
     { role: "user", content: userMessage },
   ];
 
-  const provider = pickProvider(module);
+  const orModel = openRouterModel(module);
 
-  // Cadeia de fallback: primário → Gemini 8B → DeepSeek → mensagem de erro
-  if (provider === "gemini") {
+  // 1. OpenRouter (principal — usa Gemini Flash ou DeepSeek por modelo)
+  if (process.env.OPENROUTER_API_KEY) {
+    try {
+      return await callOpenRouter(orModel, system, messages);
+    } catch (e) {
+      console.warn(`OpenRouter (${orModel}) falhou, tentando fallback:`, e);
+    }
+  }
+
+  // 2. Gemini direto
+  if (process.env.GOOGLE_AI_API_KEY) {
     try {
       return await callGemini("gemini-1.5-flash", system, messages);
-    } catch (e1) {
-      console.warn("Gemini Flash falhou, tentando Flash-8B:", e1);
+    } catch (e) {
+      console.warn("Gemini Flash falhou, tentando 8B:", e);
       try {
         return await callGemini("gemini-1.5-flash-8b", system, messages);
       } catch (e2) {
-        console.warn("Gemini 8B falhou, tentando DeepSeek:", e2);
-        try {
-          return await callDeepSeek(system, messages);
-        } catch (e3) {
-          console.error("Todos os providers falharam:", e3);
-          throw new Error("Serviço de IA temporariamente indisponível.");
-        }
-      }
-    }
-  } else {
-    // DeepSeek primeiro, fallback Gemini
-    try {
-      return await callDeepSeek(system, messages);
-    } catch (e1) {
-      console.warn("DeepSeek falhou, tentando Gemini Flash:", e1);
-      try {
-        return await callGemini("gemini-1.5-flash", system, messages);
-      } catch (e2) {
-        console.error("Todos os providers falharam:", e2);
-        throw new Error("Serviço de IA temporariamente indisponível.");
+        console.warn("Gemini 8B falhou:", e2);
       }
     }
   }
+
+  // 3. DeepSeek direto
+  if (process.env.DEEPSEEK_API_KEY) {
+    try {
+      return await callDeepSeek(system, messages);
+    } catch (e) {
+      console.warn("DeepSeek falhou:", e);
+    }
+  }
+
+  throw new Error(
+    "Nenhum provider de IA disponível. Configure OPENROUTER_API_KEY no ambiente."
+  );
 }
