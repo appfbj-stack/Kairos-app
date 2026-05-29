@@ -19,9 +19,9 @@ export interface KairosVirtualMessage {
 interface ChatAreaProps {
   room: ChatRoom;
   currentUserId: string;
-  churchName?: string;
-  userName?: string;
-  userRole?: string;
+  churchName?: string | undefined;
+  userName?: string | undefined;
+  userRole?: string | undefined;
 }
 
 const KAIROS_TRIGGER = /^@kairos\s+/i;

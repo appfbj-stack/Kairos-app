@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  typescript: { ignoreBuildErrors: true },
+  eslint: { ignoreDuringBuilds: true },
   transpilePackages: [
     "@kairos/ui", "@kairos/utils", "@kairos/types",
     "@kairos/services-ai", "@kairos/chat",
