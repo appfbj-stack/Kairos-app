@@ -1,18 +1,24 @@
-import { Newspaper } from "lucide-react";
+import { createServerClient } from "@/lib/supabase/server";
+import { MuralClient } from "@/features/social/components/mural-client";
 
-export default function SocialPage() {
+export const metadata = { title: "Mural — Kairos" };
+
+export default async function SocialPage() {
+  const supabase = await createServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data: profile } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", user!.id)
+    .single();
+
+  const canPost = ["church_admin", "pastor", "leader", "super_admin"].includes(profile?.role ?? "");
+
   return (
-    <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="mb-4 rounded-full bg-muted p-5">
-        <Newspaper className="h-10 w-10 text-muted-foreground" />
-      </div>
-      <h1 className="text-2xl font-bold mb-2">Mural da Igreja</h1>
-      <p className="text-muted-foreground max-w-sm">
-        Módulo de mural e comunicados em desenvolvimento. Em breve você poderá publicar avisos, versículos e comunicados para toda a comunidade.
-      </p>
-      <span className="mt-4 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-yellow-500/10 text-yellow-600 dark:text-yellow-400">
-        Em breve
-      </span>
-    </div>
+    <MuralClient
+      currentUserId={user!.id}
+      canPost={canPost}
+    />
   );
 }
