@@ -32,8 +32,8 @@ export function CreateRoomModal({ onClose }: CreateRoomModalProps) {
       await createRoom.mutateAsync(data);
       toast.success("Sala criada!");
       onClose();
-    } catch {
-      toast.error("Erro ao criar sala");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Erro ao criar sala");
     }
   };
 

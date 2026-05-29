@@ -39,27 +39,40 @@ export function useCreateRoom() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("users")
-        .select("church_id")
+        .select("church_id, role")
         .eq("id", user.id)
         .single();
 
-      if (!profile) throw new Error("Perfil não encontrado");
+      if (profileError || !profile) throw new Error("Perfil não encontrado. Recarregue a página.");
+      if (!profile.church_id) throw new Error("Igreja não configurada. Recarregue a página.");
 
-      const { data, error } = await supabase
+      const allowedRoles = ["church_admin", "pastor", "leader", "super_admin"];
+      if (!allowedRoles.includes(profile.role)) {
+        throw new Error("Sem permissão para criar salas. Apenas líderes podem criar.");
+      }
+
+      // Tenta inserir com created_by; se a coluna não existir, insere sem ela
+      let insertResult = await supabase
         .from("chat_rooms")
-        .insert({
-          name: input.name,
-          type: input.type,
-          church_id: profile.church_id,
-          created_by: user.id,
-        })
-        .select()
-        .single();
+        .insert({ name: input.name, type: input.type, church_id: profile.church_id, created_by: user.id })
+        .select().single();
 
-      if (error) throw error;
-      return data;
+      // Fallback: tenta sem created_by se a coluna não existir
+      if (insertResult.error?.message?.includes("created_by")) {
+        insertResult = await supabase
+          .from("chat_rooms")
+          .insert({ name: input.name, type: input.type, church_id: profile.church_id })
+          .select().single();
+      }
+
+      if (insertResult.error) {
+        const err = insertResult.error;
+        if (err.code === "42501") throw new Error("Sem permissão para criar salas. Verifique se você é líder ou admin.");
+        throw new Error(err.message);
+      }
+      return insertResult.data;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["chat-rooms"] });

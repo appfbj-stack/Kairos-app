@@ -35,7 +35,7 @@ export function ChatArea({ room, currentUserId, churchName, userName, userRole }
   const handleSend = async (content: string) => {
     // Envia mensagem normal
     sendMessage.mutate(content, {
-      onError: () => toast.error("Erro ao enviar mensagem"),
+      onError: (err) => toast.error(err instanceof Error ? err.message : "Erro ao enviar mensagem"),
     });
 
     // Detecta @kairos

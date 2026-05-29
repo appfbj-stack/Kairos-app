@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createBrowserClient } from "@/lib/supabase/client";
 import type { ChatMessage } from "@kairos/chat/types";
@@ -54,12 +54,7 @@ export function useMessages(roomId: string) {
       .channel(`room:${roomId}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `room_id=eq.${roomId}`,
-        },
+        { event: "INSERT", schema: "public", table: "messages", filter: `room_id=eq.${roomId}` },
         async (payload) => {
           const msg = payload.new as {
             id: string; church_id: string; room_id: string; sender_id: string;
@@ -67,19 +62,11 @@ export function useMessages(roomId: string) {
           };
 
           const { data: senderData } = await supabase
-            .from("users")
-            .select("id, name, avatar_url, role")
-            .eq("id", msg.sender_id)
-            .single();
+            .from("users").select("id, name, avatar_url, role").eq("id", msg.sender_id).single();
 
           const newMessage: ChatMessage = {
-            id: msg.id,
-            churchId: msg.church_id,
-            roomId: msg.room_id,
-            senderId: msg.sender_id,
-            content: msg.content,
-            type: msg.type as ChatMessage["type"],
-            mediaUrl: msg.media_url,
+            id: msg.id, churchId: msg.church_id, roomId: msg.room_id, senderId: msg.sender_id,
+            content: msg.content, type: msg.type as ChatMessage["type"], mediaUrl: msg.media_url,
             createdAt: msg.created_at,
             sender: senderData
               ? { id: senderData.id, name: senderData.name, avatarUrl: senderData.avatar_url, role: senderData.role }
@@ -93,9 +80,7 @@ export function useMessages(roomId: string) {
       )
       .subscribe();
 
-    return () => {
-      void supabase.removeChannel(channel);
-    };
+    return () => { void supabase.removeChannel(channel); };
   }, [roomId, supabase, queryClient]);
 
   return query;
@@ -109,24 +94,26 @@ export function useSendMessage(roomId: string) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
-      const { data: profile } = await supabase
-        .from("users")
-        .select("church_id")
-        .eq("id", user.id)
-        .single();
+      const { data: profile, error: profileError } = await supabase
+        .from("users").select("church_id").eq("id", user.id).single();
 
-      if (!profile) throw new Error("Perfil não encontrado");
+      if (profileError || !profile) throw new Error("Perfil não encontrado. Recarregue a página.");
+      if (!profile.church_id) throw new Error("Igreja não configurada. Recarregue a página.");
 
-      const { error } = await supabase.from("messages").insert({
-        room_id: roomId,
-        sender_id: user.id,
-        church_id: profile.church_id,
-        content: content.trim(),
-        type: "text",
-        created_by: user.id,
+      let result = await supabase.from("messages").insert({
+        room_id: roomId, sender_id: user.id, church_id: profile.church_id,
+        content: content.trim(), type: "text", created_by: user.id,
       });
 
-      if (error) throw error;
+      // Fallback sem created_by se a coluna não existir
+      if (result.error?.message?.includes("created_by")) {
+        result = await supabase.from("messages").insert({
+          room_id: roomId, sender_id: user.id, church_id: profile.church_id,
+          content: content.trim(), type: "text",
+        });
+      }
+
+      if (result.error) throw new Error(result.error.message);
     },
   });
 }
