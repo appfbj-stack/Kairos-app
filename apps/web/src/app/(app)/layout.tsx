@@ -11,9 +11,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const { data: profile } = await supabase
     .from("users")
-    .select("role, name, avatar_url")
+    .select("role, name, avatar_url, church_id")
     .eq("id", user.id)
     .single();
+
+  // Auto-fix: se o perfil não tem church_id, chama a função de recuperação
+  if (!profile?.church_id) {
+    const churchName = user.user_metadata?.["church_name"] ?? "Minha Igreja";
+    const userName = user.user_metadata?.["name"] ?? user.email?.split("@")[0] ?? "Admin";
+
+    await supabase.rpc("create_missing_profile", {
+      p_user_id: user.id,
+      p_email: user.email ?? "",
+      p_name: userName,
+      p_church_name: churchName,
+    });
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
