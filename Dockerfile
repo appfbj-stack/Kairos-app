@@ -1,38 +1,19 @@
-FROM node:20-alpine AS base
-RUN apk add --no-cache libc6-compat
+FROM node:20-alpine AS builder
+RUN apk add --no-cache libc6-compat python3 make g++
 RUN npm install -g pnpm@10
 
-# ── Dependências ──────────────────────────────────────────────────────────────
-FROM base AS deps
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
-COPY apps/web/package.json ./apps/web/
-COPY packages/types/package.json ./packages/types/
-COPY packages/ui/package.json ./packages/ui/
-COPY packages/utils/package.json ./packages/utils/
-COPY modules/cells/package.json ./modules/cells/
-COPY modules/chat/package.json ./modules/chat/
-COPY modules/events/package.json ./modules/events/
-COPY modules/finance/package.json ./modules/finance/
-COPY modules/members/package.json ./modules/members/
-COPY modules/ministries/package.json ./modules/ministries/
-COPY modules/prayer/package.json ./modules/prayer/
-COPY modules/sermons/package.json ./modules/sermons/
-COPY services/ai/package.json ./services/ai/
-
-RUN pnpm install --frozen-lockfile
-
-# ── Build ─────────────────────────────────────────────────────────────────────
-FROM base AS builder
-WORKDIR /app
-
-COPY --from=deps /app/node_modules ./node_modules
+# Copia tudo (node_modules está no .dockerignore)
 COPY . .
 
+# Instala dependências com o lockfile commitado
+RUN pnpm install --frozen-lockfile
+
+# Build args para variáveis NEXT_PUBLIC_* (precisam estar disponíveis no build)
 ARG NEXT_PUBLIC_SUPABASE_URL
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-ARG NEXT_PUBLIC_APP_URL
+ARG NEXT_PUBLIC_APP_URL=http://187.77.229.227
 ARG NEXT_PUBLIC_APP_NAME=Kairos
 
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
@@ -40,6 +21,7 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME
 
+# Build do Next.js
 RUN pnpm --filter web build
 
 # ── Runner ────────────────────────────────────────────────────────────────────
