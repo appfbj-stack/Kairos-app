@@ -13,18 +13,21 @@ export function useRooms() {
     queryFn: async (): Promise<ChatRoom[]> => {
       const { data, error } = await supabase
         .from("chat_rooms")
-        .select("*")
+        .select("id, name, type, church_id, created_at, created_by")
         .order("name");
 
-      if (error) throw error;
+      if (error) {
+        console.error("useRooms error:", error);
+        return [];
+      }
 
       return (data ?? []).map((r) => ({
         id: r.id,
-        churchId: r.church_id,
-        name: r.name,
-        type: r.type as ChatRoom["type"],
-        createdAt: r.created_at,
-        createdBy: r.created_by,
+        churchId: r.church_id ?? "",
+        name: r.name ?? "",
+        type: (r.type ?? "general") as ChatRoom["type"],
+        createdAt: r.created_at ?? new Date().toISOString(),
+        createdBy: r.created_by ?? "",
       }));
     },
   });
@@ -37,42 +40,45 @@ export function useCreateRoom() {
   return useMutation({
     mutationFn: async (input: CreateRoomSchema) => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
+      if (!user) throw new Error("Você precisa estar logado para criar uma sala.");
 
-      const { data: profile, error: profileError } = await supabase
+      // Busca church_id do perfil
+      const { data: profile } = await supabase
         .from("users")
-        .select("church_id, role")
+        .select("church_id")
         .eq("id", user.id)
         .single();
 
-      if (profileError || !profile) throw new Error("Perfil não encontrado. Recarregue a página.");
-      if (!profile.church_id) throw new Error("Igreja não configurada. Recarregue a página.");
+      const church_id = profile?.church_id;
+      if (!church_id) throw new Error("Perfil não configurado. Recarregue a página.");
 
-      const allowedRoles = ["church_admin", "pastor", "leader", "super_admin"];
-      if (!allowedRoles.includes(profile.role)) {
-        throw new Error("Sem permissão para criar salas. Apenas líderes podem criar.");
-      }
-
-      // Tenta inserir com created_by; se a coluna não existir, insere sem ela
-      let insertResult = await supabase
+      // Insere a sala — sem verificação de role no cliente (RLS cuida disso)
+      const { data, error } = await supabase
         .from("chat_rooms")
-        .insert({ name: input.name, type: input.type, church_id: profile.church_id, created_by: user.id })
-        .select().single();
+        .insert({
+          name: input.name,
+          type: input.type ?? "general",
+          church_id,
+          created_by: user.id,
+        })
+        .select()
+        .single();
 
-      // Fallback: tenta sem created_by se a coluna não existir
-      if (insertResult.error?.message?.includes("created_by")) {
-        insertResult = await supabase
-          .from("chat_rooms")
-          .insert({ name: input.name, type: input.type, church_id: profile.church_id })
-          .select().single();
+      if (error) {
+        console.error("createRoom error:", error);
+        // Se falhar com created_by, tenta sem
+        if (error.message?.includes("created_by")) {
+          const { data: data2, error: error2 } = await supabase
+            .from("chat_rooms")
+            .insert({ name: input.name, type: input.type ?? "general", church_id })
+            .select()
+            .single();
+          if (error2) throw new Error(`Erro ao criar sala: ${error2.message}`);
+          return data2;
+        }
+        throw new Error(`Erro ao criar sala: ${error.message}`);
       }
-
-      if (insertResult.error) {
-        const err = insertResult.error;
-        if (err.code === "42501") throw new Error("Sem permissão para criar salas. Verifique se você é líder ou admin.");
-        throw new Error(err.message);
-      }
-      return insertResult.data;
+      return data;
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["chat-rooms"] });
