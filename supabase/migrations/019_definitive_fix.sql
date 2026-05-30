@@ -46,10 +46,11 @@ begin
   values (coalesce(p_church_name, 'Minha Igreja'), v_slug, 'free', p_user_id)
   returning id into v_church_id;
 
-  -- Cria ou atualiza perfil
-  insert into public.users (id, church_id, email, name, role, created_by)
-  values (p_user_id, v_church_id, coalesce(p_email, ''), coalesce(p_name, 'Usuário'), 'church_admin', p_user_id)
+  -- Cria ou atualiza perfil (tenant_id = church_id para integração Vercel/Supabase)
+  insert into public.users (id, tenant_id, church_id, email, name, role, created_by)
+  values (p_user_id, v_church_id, v_church_id, coalesce(p_email, ''), coalesce(p_name, 'Usuário'), 'church_admin', p_user_id)
   on conflict (id) do update set
+    tenant_id = excluded.tenant_id,
     church_id = excluded.church_id,
     email = excluded.email,
     name = excluded.name;
