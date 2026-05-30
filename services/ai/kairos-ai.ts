@@ -41,8 +41,8 @@ const FAST_MODULES: AIModule[] = ["chat", "social", "devotional", "support", "ca
 /** Retorna o modelo OpenRouter ideal para cada tipo de tarefa */
 function openRouterModel(module: AIModule): string {
   return FAST_MODULES.includes(module)
-    ? "google/gemini-flash-1.5"   // rápido, gratuito, 1M ctx
-    : "deepseek/deepseek-chat";   // raciocínio longo e documentos
+    ? "google/gemini-2.0-flash-001"   // Gemini 2.0 Flash via OpenRouter
+    : "deepseek/deepseek-chat";       // raciocínio longo e documentos
 }
 
 // ─── System Prompt ───────────────────────────────────────────────────────────
@@ -125,7 +125,7 @@ async function callOpenRouter(
 // ─── Provider: Gemini direto (fallback) ──────────────────────────────────────
 
 async function callGemini(
-  model: "gemini-1.5-flash" | "gemini-1.5-flash-8b",
+  model: "gemini-2.0-flash" | "gemini-1.5-flash" | "gemini-1.5-flash-8b",
   system: string,
   messages: KairosMessage[]
 ): Promise<string> {
@@ -203,25 +203,34 @@ export async function kairosAI(
 
   const orModel = openRouterModel(module);
 
-  // 1. OpenRouter (principal — usa Gemini Flash ou DeepSeek por modelo)
-  if (process.env.OPENROUTER_API_KEY) {
+  // 1. Gemini 2.0 direto (mais confiável com a chave do usuário)
+  if (process.env.GOOGLE_AI_API_KEY) {
     try {
-      return await callOpenRouter(orModel, system, messages);
+      return await callGemini("gemini-2.0-flash", system, messages);
     } catch (e) {
-      console.warn(`OpenRouter (${orModel}) falhou, tentando fallback:`, e);
+      console.warn("Gemini 2.0 Flash falhou, tentando 1.5:", e);
+      try {
+        return await callGemini("gemini-1.5-flash", system, messages);
+      } catch (e2) {
+        console.warn("Gemini 1.5 Flash falhou:", e2);
+      }
     }
   }
 
-  // 2. Gemini direto
-  if (process.env.GOOGLE_AI_API_KEY) {
+  // 2. OpenRouter como fallback (Gemini 2.0 ou DeepSeek)
+  if (process.env.OPENROUTER_API_KEY) {
+    const fallbackModel = FAST_MODULES.includes(module)
+      ? "google/gemini-2.0-flash-001"
+      : "deepseek/deepseek-chat";
     try {
-      return await callGemini("gemini-1.5-flash", system, messages);
+      return await callOpenRouter(fallbackModel, system, messages);
     } catch (e) {
-      console.warn("Gemini Flash falhou, tentando 8B:", e);
+      console.warn(`OpenRouter (${fallbackModel}) falhou:`, e);
+      // Tenta modelo alternativo gratuito
       try {
-        return await callGemini("gemini-1.5-flash-8b", system, messages);
+        return await callOpenRouter("meta-llama/llama-3.1-8b-instruct:free", system, messages);
       } catch (e2) {
-        console.warn("Gemini 8B falhou:", e2);
+        console.warn("OpenRouter Llama falhou:", e2);
       }
     }
   }
@@ -236,6 +245,6 @@ export async function kairosAI(
   }
 
   throw new Error(
-    "Nenhum provider de IA disponível. Configure OPENROUTER_API_KEY no ambiente."
+    "IA indisponível. Verifique GOOGLE_AI_API_KEY ou OPENROUTER_API_KEY."
   );
 }
