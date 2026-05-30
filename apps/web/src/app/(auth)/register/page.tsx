@@ -33,20 +33,30 @@ export default function RegisterPage() {
     setLoading(true);
     const supabase = createBrowserClient();
 
-    const { error } = await supabase.auth.signUp({
+    const { data: signupData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
-        data: {
-          name: data.name,
-          church_name: data.churchName,
-        },
+        data: { name: data.name, church_name: data.churchName },
       },
     });
 
     if (error) {
       toast.error(error.message);
       setLoading(false);
+      return;
+    }
+
+    // Se já tem sessão (email confirmation desabilitado), cria perfil agora
+    if (signupData.user && signupData.session) {
+      await supabase.rpc("create_missing_profile", {
+        p_user_id: signupData.user.id,
+        p_email: data.email,
+        p_name: data.name,
+        p_church_name: data.churchName,
+      });
+      toast.success("Conta criada com sucesso!");
+      router.push("/dashboard");
       return;
     }
 
