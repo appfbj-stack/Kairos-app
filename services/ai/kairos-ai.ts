@@ -1,24 +1,14 @@
 /**
  * Kairos AI — serviço central de inteligência artificial
  *
- * Roteamento por módulo:
- *   Chat/Social/Devocional → google/gemini-flash-1.5 (via OpenRouter)
- *   Sermão/Estudos/Docs    → deepseek/deepseek-chat  (via OpenRouter)
- *
- * Cadeia de fallback:
- *   OpenRouter (principal) → Gemini direto → DeepSeek direto → erro
+ * Provider principal: OpenRouter com DeepSeek (free tier, sem rate limit agressivo)
+ * Fallback 1: OpenRouter com Llama 3 (free)
+ * Fallback 2: Gemini direto (limitado a 15 req/min no free tier)
  */
 
 export type AIModule =
-  | "chat"
-  | "social"
-  | "devotional"
-  | "support"
-  | "calendar"
-  | "sermon"
-  | "studies"
-  | "office"
-  | "finance";
+  | "chat" | "social" | "devotional" | "support" | "calendar"
+  | "sermon" | "studies" | "office" | "finance";
 
 export interface KairosContext {
   churchName: string;
@@ -34,17 +24,6 @@ export interface KairosMessage {
   content: string;
 }
 
-// ─── Modelos por tipo de tarefa ──────────────────────────────────────────────
-
-const FAST_MODULES: AIModule[] = ["chat", "social", "devotional", "support", "calendar"];
-
-/** Retorna o modelo OpenRouter ideal para cada tipo de tarefa */
-function openRouterModel(module: AIModule): string {
-  return FAST_MODULES.includes(module)
-    ? "google/gemini-2.0-flash-001"   // Gemini 2.0 Flash via OpenRouter
-    : "deepseek/deepseek-chat";       // raciocínio longo e documentos
-}
-
 // ─── System Prompt ───────────────────────────────────────────────────────────
 
 export function buildSystemPrompt(ctx: KairosContext): string {
@@ -52,32 +31,25 @@ export function buildSystemPrompt(ctx: KairosContext): string {
 
 IDENTIDADE
 Seu nome é Kairos. Responda com acolhimento, sabedoria e amor cristão.
-Tom: amigável, pastoral, direto e encorajador.
-Idioma: português brasileiro.
+Tom: amigável, pastoral, direto e encorajador. Idioma: português brasileiro.
 
 CONTEXTO
-Nome do usuário: ${ctx.userName ?? "Visitante"}
-Papel: ${ctx.userRole ?? "member"}
-Módulo ativo: ${ctx.activeModule ?? "geral"}
-Módulos da igreja: ${ctx.activeModules?.join(", ") ?? "todos"}
+Usuário: ${ctx.userName ?? "Visitante"} | Papel: ${ctx.userRole ?? "membro"}
 
 REGRAS
-1. Responda sempre em português brasileiro.
-2. Seja objetivo e prático (máx. 3 parágrafos no chat).
+1. Sempre em português brasileiro.
+2. Máximo 3 parágrafos no chat, mais detalhado em estudos/sermões.
 3. Use linguagem bíblica natural em temas pastorais.
-4. Nunca invente dados — use apenas o contexto fornecido.
-5. Se não souber, diga e sugira falar com um líder.
-6. Use emojis com moderação (1-2 por mensagem).
-7. Termine com bênção ou encorajamento quando adequado.
+4. Nunca invente dados.
+5. Use emojis com moderação (1-2 por mensagem).
 
 ESPECIALIDADES
 - Sermões, esboços e devocionais
 - Postagens para redes sociais da igreja
-- Comunicados, avisos e cartas pastorais
+- Comunicados e cartas pastorais
 - Dúvidas sobre membros, células e ministérios
-- Apoio à gestão financeira com linguagem pastoral
+- Apoio à gestão financeira
 - Planos de leitura e estudos bíblicos
-- Suporte ao uso da plataforma Kairos
 - Orações e reflexões bíblicas`;
 }
 
@@ -96,7 +68,7 @@ async function callOpenRouter(
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL ?? "https://kairos.app",
+      "HTTP-Referer": "https://kairos.fbautomacao.space",
       "X-Title": "Kairos AI",
     },
     body: JSON.stringify({
@@ -108,27 +80,26 @@ async function callOpenRouter(
       temperature: 0.7,
       max_tokens: 2048,
     }),
-    signal: AbortSignal.timeout(20_000),
+    signal: AbortSignal.timeout(25_000),
   });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`OpenRouter ${model} error ${res.status}: ${err}`);
+  const data = await res.json() as {
+    choices?: Array<{ message: { content: string } }>;
+    error?: { message: string };
+  };
+
+  if (!res.ok || data.error) {
+    throw new Error(`OpenRouter ${model} error ${res.status}: ${data.error?.message ?? res.statusText}`);
   }
 
-  const data = await res.json() as {
-    choices: Array<{ message: { content: string } }>;
-  };
-  return data.choices[0]?.message?.content ?? "";
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error(`OpenRouter ${model}: resposta vazia`);
+  return content;
 }
 
-// ─── Provider: Gemini direto (fallback) ──────────────────────────────────────
+// ─── Provider: Gemini direto (fallback apenas) ────────────────────────────────
 
-async function callGemini(
-  model: "gemini-2.0-flash" | "gemini-1.5-flash" | "gemini-1.5-flash-8b",
-  system: string,
-  messages: KairosMessage[]
-): Promise<string> {
+async function callGemini(model: string, system: string, messages: KairosMessage[]): Promise<string> {
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) throw new Error("GOOGLE_AI_API_KEY não configurada");
 
@@ -145,46 +116,22 @@ async function callGemini(
         })),
         generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
       }),
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(20_000),
     }
   );
 
-  if (!res.ok) throw new Error(`Gemini ${model} error: ${res.status}`);
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Gemini ${model} error ${res.status}: ${err}`);
+  }
+
   const data = await res.json() as {
-    candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
+    candidates?: Array<{ content: { parts: Array<{ text: string }> } }>;
   };
-  return data.candidates[0]?.content.parts[0]?.text ?? "";
-}
 
-// ─── Provider: DeepSeek direto (fallback) ────────────────────────────────────
-
-async function callDeepSeek(system: string, messages: KairosMessage[]): Promise<string> {
-  const apiKey = process.env.DEEPSEEK_API_KEY;
-  if (!apiKey) throw new Error("DEEPSEEK_API_KEY não configurada");
-
-  const res = await fetch("https://api.deepseek.com/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "deepseek-chat",
-      messages: [
-        { role: "system", content: system },
-        ...messages.map((m) => ({ role: m.role, content: m.content })),
-      ],
-      temperature: 0.7,
-      max_tokens: 2048,
-    }),
-    signal: AbortSignal.timeout(20_000),
-  });
-
-  if (!res.ok) throw new Error(`DeepSeek error: ${res.status}`);
-  const data = await res.json() as {
-    choices: Array<{ message: { content: string } }>;
-  };
-  return data.choices[0]?.message.content ?? "";
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error(`Gemini ${model}: resposta vazia`);
+  return text;
 }
 
 // ─── Função principal com cadeia de fallback ──────────────────────────────────
@@ -196,55 +143,39 @@ export async function kairosAI(
 ): Promise<string> {
   const system = buildSystemPrompt({ ...ctx, activeModule: module });
   const history = ctx.history ?? [];
-  const messages: KairosMessage[] = [
-    ...history,
-    { role: "user", content: userMessage },
-  ];
+  const messages: KairosMessage[] = [...history, { role: "user", content: userMessage }];
 
-  const orModel = openRouterModel(module);
-
-  // 1. Gemini 2.0 direto (mais confiável com a chave do usuário)
-  if (process.env.GOOGLE_AI_API_KEY) {
-    try {
-      return await callGemini("gemini-2.0-flash", system, messages);
-    } catch (e) {
-      console.warn("Gemini 2.0 Flash falhou, tentando 1.5:", e);
-      try {
-        return await callGemini("gemini-1.5-flash", system, messages);
-      } catch (e2) {
-        console.warn("Gemini 1.5 Flash falhou:", e2);
-      }
-    }
-  }
-
-  // 2. OpenRouter como fallback (Gemini 2.0 ou DeepSeek)
+  // ── 1. DeepSeek via OpenRouter (free, principal) ──────────────────────────
   if (process.env.OPENROUTER_API_KEY) {
-    const fallbackModel = FAST_MODULES.includes(module)
-      ? "google/gemini-2.0-flash-001"
-      : "deepseek/deepseek-chat";
     try {
-      return await callOpenRouter(fallbackModel, system, messages);
-    } catch (e) {
-      console.warn(`OpenRouter (${fallbackModel}) falhou:`, e);
-      // Tenta modelo alternativo gratuito
+      return await callOpenRouter("deepseek/deepseek-chat:free", system, messages);
+    } catch (e1) {
+      console.warn("DeepSeek free falhou, tentando Llama:", e1);
+
+      // ── 2. Llama 3 via OpenRouter (free, fallback) ────────────────────────
       try {
         return await callOpenRouter("meta-llama/llama-3.1-8b-instruct:free", system, messages);
       } catch (e2) {
-        console.warn("OpenRouter Llama falhou:", e2);
+        console.warn("Llama free falhou, tentando Gemini Flash via OpenRouter:", e2);
+
+        // ── 3. Gemini 2.0 via OpenRouter (fallback) ───────────────────────
+        try {
+          return await callOpenRouter("google/gemini-2.0-flash-001", system, messages);
+        } catch (e3) {
+          console.warn("Gemini via OpenRouter falhou:", e3);
+        }
       }
     }
   }
 
-  // 3. DeepSeek direto
-  if (process.env.DEEPSEEK_API_KEY) {
+  // ── 4. Gemini direto (último recurso — pode ter rate limit 429) ───────────
+  if (process.env.GOOGLE_AI_API_KEY) {
     try {
-      return await callDeepSeek(system, messages);
+      return await callGemini("gemini-1.5-flash-latest", system, messages);
     } catch (e) {
-      console.warn("DeepSeek falhou:", e);
+      console.warn("Gemini direto falhou:", e);
     }
   }
 
-  throw new Error(
-    "IA indisponível. Verifique GOOGLE_AI_API_KEY ou OPENROUTER_API_KEY."
-  );
+  throw new Error("IA temporariamente indisponível. Tente novamente em instantes.");
 }
