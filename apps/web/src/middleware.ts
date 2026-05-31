@@ -28,23 +28,22 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const { pathname } = request.nextUrl;
 
-  const isPublic = publicRoutes.some((r) => pathname.startsWith(r));
+    const isPublic = pathname === "/" || publicRoutes.some((r) => pathname.startsWith(r));
 
-  // Não autenticado → vai pro login
-  if (!user && !isPublic) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
+      // Nao autenticado e nao e rota publica e nao e raiz
+      if (!user && !isPublic) {
+              return NextResponse.redirect(new URL("/login", request.url));
+      }
+  
   // Autenticado em página pública → vai pro dashboard
   if (user && isPublic) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Rota raiz → dashboard
-  if (pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
+      // Rota raiz: se logado vai pro dashboard, se nao logado mostra landing page
+      if (pathname === "/" && user) {
+              return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
   return supabaseResponse;
 }
 
