@@ -27,12 +27,12 @@ const mainNav = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/members", icon: Users, label: "Membros" },
   { href: "/cells", icon: CircleDot, label: "Células" },
-  { href: "/ministries", icon: Church, label: "Ministerios" },
+  { href: "/ministries", icon: Church, label: "Ministérios" },
   { href: "/events", icon: Calendar, label: "Eventos" },
-  { href: "/finance", icon: DollarSign, label: "Financas" },
-  { href: "/prayer", icon: HeartHandshake, label: "Oracao" },
-  { href: "/sermons", icon: Mic2, label: "Sermoes" },
-  { href: "/volunteers", icon: HandHeart, label: "Voluntarios" },
+  { href: "/finance", icon: DollarSign, label: "Finanças" },
+  { href: "/prayer", icon: HeartHandshake, label: "Oração" },
+  { href: "/sermons", icon: Mic2, label: "Sermões" },
+  { href: "/volunteers", icon: HandHeart, label: "Voluntários" },
   { href: "/social", icon: Newspaper, label: "Mural" },
   { href: "/chat", icon: MessageSquare, label: "Chat" },
   { href: "/ai", icon: Sparkles, label: "Kairos AI" },
@@ -110,7 +110,7 @@ export function AppSidebar({ role }: { role?: string }) {
           )}
         >
           <Settings className="w-4 h-4 shrink-0" />
-          {!collapsed && <span>Configuracoes</span>}
+          {!collapsed && <span>Configurações</span>}
         </Link>
       </div>
     </aside>
