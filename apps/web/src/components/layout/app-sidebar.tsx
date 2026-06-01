@@ -18,6 +18,7 @@ import {
   HandHeart,
   Newspaper,
   ShieldCheck,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -35,6 +36,7 @@ const mainNav = [
   { href: "/social", icon: Newspaper, label: "Mural" },
   { href: "/chat", icon: MessageSquare, label: "Chat" },
   { href: "/ai", icon: Sparkles, label: "Kairos AI" },
+  { href: "/planos", icon: CreditCard, label: "Planos" },
 ];
 
 export function AppSidebar({ role }: { role?: string }) {
@@ -49,7 +51,6 @@ export function AppSidebar({ role }: { role?: string }) {
         collapsed ? "w-16" : "w-64"
       )}
     >
-      {/* Logo */}
       <div className="flex items-center justify-between px-4 py-5 border-b border-sidebar-border shrink-0">
         {!collapsed && (
           <div className="flex items-center gap-2">
@@ -64,8 +65,6 @@ export function AppSidebar({ role }: { role?: string }) {
           <ChevronLeft className={cn("w-4 h-4 transition-transform", collapsed && "rotate-180")} />
         </button>
       </div>
-
-      {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 space-y-0.5 px-2">
         {mainNav.map(({ href, icon: Icon, label }) => {
           const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
@@ -86,8 +85,6 @@ export function AppSidebar({ role }: { role?: string }) {
           );
         })}
       </nav>
-
-      {/* Bottom */}
       <div className="border-t border-sidebar-border p-2 space-y-0.5 shrink-0">
         {isAdmin && (
           <Link
