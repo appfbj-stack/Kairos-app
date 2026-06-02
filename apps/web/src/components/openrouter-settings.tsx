@@ -2,14 +2,11 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Eye, EyeOff, Check, AlertCircle } from "lucide-react";
+import { Settings, Eye, EyeOff, Check, AlertCircle, ExternalLink } from "lucide-react";
 import { useOpenRouter } from "@/hooks/useOpenRouter";
+import { formatPrice } from "@/lib/openrouter";
 
-interface OpenRouterSettingsProps {
-  onConfigured?: () => void;
-}
-
-export default function OpenRouterSettings({ onConfigured }: OpenRouterSettingsProps) {
+export default function OpenRouterSettings() {
   const {
     apiKey,
     setApiKey,
@@ -24,21 +21,28 @@ export default function OpenRouterSettings({ onConfigured }: OpenRouterSettingsP
   const [showKey, setShowKey] = useState(false);
   const [tempKey, setTempKey] = useState(apiKey);
   const [isExpanded, setIsExpanded] = useState(!isConfigured);
+  const [activeCategory, setActiveCategory] = useState<"economy" | "standard" | "premium">("economy");
 
   const handleSaveKey = () => {
     if (tempKey.trim()) {
       setApiKey(tempKey.trim());
-      onConfigured?.();
     }
   };
 
   const handleRemoveKey = () => {
     setTempKey("");
     setApiKey("");
-    setIsExpanded(true);
   };
 
   const selectedModelInfo = models.find(m => m.id === selectedModel);
+
+  const categories = [
+    { key: "economy" as const, label: "💰 Economy", desc: "Mais baratos" },
+    { key: "standard" as const, label: "⚖️ Standard", desc: "Balanceados" },
+    { key: "premium" as const, label: "👑 Premium", desc: "Mais poderosos" }
+  ];
+
+  const filteredModels = models.filter(m => m.category === activeCategory);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -56,8 +60,8 @@ export default function OpenRouterSettings({ onConfigured }: OpenRouterSettingsP
               OpenRouter AI
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {isConfigured
-                ? `Conectado • ${selectedModelInfo?.name}`
+              {isConfigured && selectedModelInfo
+                ? `${selectedModelInfo.name} • ${formatPrice(selectedModelInfo.promptPrice)}`
                 : "Configure para usar IA"}
             </p>
           </div>
@@ -85,7 +89,7 @@ export default function OpenRouterSettings({ onConfigured }: OpenRouterSettingsP
                   value={tempKey}
                   onChange={(e) => setTempKey(e.target.value)}
                   placeholder="sk-or-v1-..."
-                  className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-white text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono"
                 />
                 <button
                   type="button"
@@ -103,65 +107,76 @@ export default function OpenRouterSettings({ onConfigured }: OpenRouterSettingsP
                 Salvar
               </button>
             </div>
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              Obtenha sua key em{" "}
+            <div className="mt-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <span>Não tem uma key?</span>
               <a
                 href="https://openrouter.ai/keys"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-purple-600 hover:underline"
+                className="text-purple-600 hover:underline flex items-center gap-1"
               >
-                openrouter.ai/keys
+                Criar conta grátis <ExternalLink size={10} />
               </a>
-            </p>
+            </div>
           </div>
 
           {/* Model Selection */}
           {isConfigured && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Modelo de IA
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Modelo de IA (apenas pagos)
               </label>
 
               {/* Category Tabs */}
-              <div className="space-y-3">
-                {(["fast", "balanced", "powerful"] as const).map(category => (
-                  <div key={category}>
-                    <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">
-                      {category === "fast"
-                        ? "⚡ Rápido"
-                        : category === "balanced"
-                        ? "⚖️ Balanceado"
-                        : "💪 Poderoso"}
-                    </h4>
-                    <div className="grid gap-2">
-                      {models
-                        .filter(m => m.category === category)
-                        .map(model => (
-                          <button
-                            key={model.id}
-                            onClick={() => setSelectedModel(model.id)}
-                            className={`text-left p-3 rounded-lg border transition-all ${
-                              selectedModel === model.id
-                                ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
-                                : "border-gray-200 dark:border-gray-600 hover:border-purple-300"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-gray-800 dark:text-white text-sm">
-                                {model.name}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {model.pricePer1k}/1k tokens
-                              </span>
-                            </div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {model.description}
-                            </p>
-                          </button>
-                        ))}
+              <div className="flex gap-2 mb-3">
+                {categories.map(cat => (
+                  <button
+                    key={cat.key}
+                    onClick={() => setActiveCategory(cat.key)}
+                    className={`flex-1 p-2 rounded-lg text-center transition-all ${
+                      activeCategory === cat.key
+                        ? "bg-purple-600 text-white"
+                        : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200"
+                    }`}
+                  >
+                    <div className="text-sm font-bold">{cat.label}</div>
+                    <div className="text-xs opacity-75">{cat.desc}</div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Models List */}
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {filteredModels.map(model => (
+                  <button
+                    key={model.id}
+                    onClick={() => setSelectedModel(model.id)}
+                    className={`w-full text-left p-3 rounded-lg border transition-all ${
+                      selectedModel === model.id
+                        ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20 ring-1 ring-purple-500"
+                        : "border-gray-200 dark:border-gray-600 hover:border-purple-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-gray-800 dark:text-white text-sm">
+                        {model.name}
+                      </span>
+                      <span className="text-xs font-mono text-purple-600 dark:text-purple-400">
+                        {formatPrice(model.promptPrice)}
+                      </span>
                     </div>
-                  </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {model.description}
+                    </p>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                      <span>Contexto: {(model.contextLength / 1000).toFixed(0)}K</span>
+                      {selectedModel === model.id && (
+                        <span className="text-green-600 font-bold flex items-center gap-1">
+                          <Check size={12} /> Selecionado
+                        </span>
+                      )}
+                    </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -182,8 +197,17 @@ export default function OpenRouterSettings({ onConfigured }: OpenRouterSettingsP
             <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-sm">
               <AlertCircle size={16} />
               {error}
+              <button onClick={clearError} className="ml-auto text-xs underline">
+                Fechar
+              </button>
             </div>
           )}
+
+          {/* Info */}
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs text-blue-700 dark:text-blue-400">
+            <strong>Dica:</strong> Todos os modelos são pagos. Os preços mostrados são por 1 milhão de tokens.
+            Custo aproximado de uma pergunta simples: $0.01 a $0.10 dependendo do modelo.
+          </div>
         </div>
       )}
     </div>
