@@ -7,7 +7,7 @@
  */
 
 export type AIModule =
-  | "chat" | "social" | "devotional" | "support" | "calendar"
+  | "chat" | "social" | "devotional" | "support" | "calendar"hh
   | "sermon" | "studies" | "office" | "finance";
 
 export interface KairosContext {
@@ -148,7 +148,7 @@ export async function kairosAI(
   // ── 1. DeepSeek via OpenRouter (free, principal) ──────────────────────────
   if (process.env.OPENROUTER_API_KEY) {
     try {
-      return await callOpenRouter("deepseek/deepseek-chat:free", system, messages);
+      return await callOpenRouter("openai/gpt-oss-120b:free", system, messages);
     } catch (e1) {
       console.warn("DeepSeek free falhou, tentando Llama:", e1);
 
