@@ -7,7 +7,7 @@
  */
 
 export type AIModule =
-  | "chat" | "social" | "devotional" | "support" | "calendar"hh
+  | "chat" | "social" | "devotional" | "support" | "calendar"
   | "sermon" | "studies" | "office" | "finance";
 
 export interface KairosContext {
