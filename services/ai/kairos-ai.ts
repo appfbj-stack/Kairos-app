@@ -1,9 +1,9 @@
 /**
- * Kairos AI — serviço central de inteligência artificial
+ * Kairos AI - servico central de inteligencia artificial
  *
- * Provider principal: OpenRouter com DeepSeek (free tier, sem rate limit agressivo)
- * Fallback 1: OpenRouter com Llama 3 (free)
- * Fallback 2: Gemini direto (limitado a 15 req/min no free tier)
+ * Provider principal: OpenRouter DeepSeek Chat V3 free
+ * Fallback 1: Llama 3.1 8B (free)
+ * Fallback 2: Mistral 7B (free)
  */
 
 export type AIModule =
@@ -24,63 +24,53 @@ export interface KairosMessage {
   content: string;
 }
 
-// ─── System Prompt ───────────────────────────────────────────────────────────
-
 export function buildSystemPrompt(ctx: KairosContext): string {
-  return `Você é a Kairos AI, assistente oficial da ${ctx.churchName}.
-
-IDENTIDADE
-Seu nome é Kairos. Responda com acolhimento, sabedoria e amor cristão.
-Tom: amigável, pastoral, direto e encorajador. Idioma: português brasileiro.
-
-CONTEXTO
-Usuário: ${ctx.userName ?? "Visitante"} | Papel: ${ctx.userRole ?? "membro"}
-
-REGRAS
-1. Sempre em português brasileiro.
-2. Máximo 3 parágrafos no chat, mais detalhado em estudos/sermões.
-3. Use linguagem bíblica natural em temas pastorais.
-4. Nunca invente dados.
-5. Use emojis com moderação (1-2 por mensagem).
-
-ESPECIALIDADES
-- Sermões, esboços e devocionais
-- Postagens para redes sociais da igreja
-- Comunicados e cartas pastorais
-- Dúvidas sobre membros, células e ministérios
-- Apoio à gestão financeira
-- Planos de leitura e estudos bíblicos
-- Orações e reflexões bíblicas`;
+  return "Voce e a Kairos AI, assistente oficial da " + ctx.churchName + ".\n\nIDENTIDADE\nSeu nome e Kairos. Responda com acolhimento, sabedoria e amor cristao.\nTom: amigavel, pastoral, direto e encorajador. Idioma: portugues brasileiro.\n\nCONTEXTO\nUsuario: " + (ctx.userName ?? "Visitante") + " | Papel: " + (ctx.userRole ?? "membro") + "\n\nREGRAS\n1. Sempre em portugues brasileiro.\n2. Maximo 3 paragrafos no chat.\n3. Use linguagem biblica natural.\n4. Nunca invente dados.\n5. Use emojis com moderacao.\n\nESPECIALIDADES\n- Sermoes, esboco e devocionais\n- Postagens para redes sociais\n- Comunicados pastorais\n- Membros, celulas e ministerios\n- Gestao financeira\n- Estudos biblicos\n- Analise de imagens";
 }
-
-// ─── Provider: OpenRouter ─────────────────────────────────────────────────────
 
 async function callOpenRouter(
   model: string,
   system: string,
-  messages: KairosMessage[]
+  messages: KairosMessage[],
+  imageUrl?: string
 ): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) throw new Error("OPENROUTER_API_KEY não configurada");
+  if (!apiKey) throw new Error("OPENROUTER_API_KEY nao configurada");
+
+  const lastMsg = messages[messages.length - 1];
+  const historyMsgs = messages.slice(0, -1).map((m) => ({
+    role: m.role,
+    content: m.content,
+  }));
+
+  const lastContent: unknown = imageUrl
+    ? [
+        { type: "image_url", image_url: { url: imageUrl } },
+        { type: "text", text: lastMsg?.content ?? "" },
+      ]
+    : lastMsg?.content ?? "";
+
+  const allMessages = [
+    { role: "system", content: system },
+    ...historyMsgs,
+    { role: "user", content: lastContent },
+  ];
 
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: "Bearer " + apiKey,
       "HTTP-Referer": "https://kairos.fbautomacao.space",
       "X-Title": "Kairos AI",
     },
     body: JSON.stringify({
       model,
-      messages: [
-        { role: "system", content: system },
-        ...messages.map((m) => ({ role: m.role, content: m.content })),
-      ],
+      messages: allMessages,
       temperature: 0.7,
       max_tokens: 2048,
     }),
-    signal: AbortSignal.timeout(25_000),
+    signal: AbortSignal.timeout(30_000),
   });
 
   const data = await res.json() as {
@@ -89,93 +79,49 @@ async function callOpenRouter(
   };
 
   if (!res.ok || data.error) {
-    throw new Error(`OpenRouter ${model} error ${res.status}: ${data.error?.message ?? res.statusText}`);
+    throw new Error("OpenRouter " + model + " error " + res.status + ": " + (data.error?.message ?? res.statusText));
   }
 
   const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error(`OpenRouter ${model}: resposta vazia`);
+  if (!content) throw new Error("OpenRouter " + model + ": resposta vazia");
   return content;
 }
-
-// ─── Provider: Gemini direto (fallback apenas) ────────────────────────────────
-
-async function callGemini(model: string, system: string, messages: KairosMessage[]): Promise<string> {
-  const apiKey = process.env.GOOGLE_AI_API_KEY;
-  if (!apiKey) throw new Error("GOOGLE_AI_API_KEY não configurada");
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: messages.map((m) => ({
-          role: m.role === "assistant" ? "model" : "user",
-          parts: [{ text: m.content }],
-        })),
-        generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-      }),
-      signal: AbortSignal.timeout(20_000),
-    }
-  );
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Gemini ${model} error ${res.status}: ${err}`);
-  }
-
-  const data = await res.json() as {
-    candidates?: Array<{ content: { parts: Array<{ text: string }> } }>;
-  };
-
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error(`Gemini ${model}: resposta vazia`);
-  return text;
-}
-
-// ─── Função principal com cadeia de fallback ──────────────────────────────────
 
 export async function kairosAI(
   userMessage: string,
   ctx: KairosContext,
-  module: AIModule = "chat"
+  module: AIModule = "chat",
+  imageUrl?: string
 ): Promise<string> {
-  const system = buildSystemPrompt({ ...ctx, activeModule: module });
-  const history = ctx.history ?? [];
-  const messages: KairosMessage[] = [...history, { role: "user", content: userMessage }];
+  const system = buildSystemPrompt(ctx);
+  const messages: KairosMessage[] = [
+    ...(ctx.history ?? []),
+    { role: "user", content: userMessage },
+  ];
 
-  // ── 1. DeepSeek via OpenRouter (free, principal) ──────────────────────────
+  const errors: string[] = [];
+
   if (process.env.OPENROUTER_API_KEY) {
     try {
-      return await callOpenRouter("openai/gpt-oss-120b:free", system, messages);
+      return await callOpenRouter("deepseek/deepseek-chat-v3-0324:free", system, messages, imageUrl);
     } catch (e1) {
-      console.warn("DeepSeek free falhou, tentando Llama:", e1);
-
-      // ── 2. Llama 3 via OpenRouter (free, fallback) ────────────────────────
+      errors.push("DeepSeek: " + (e1 instanceof Error ? e1.message : String(e1)));
+      console.warn("DeepSeek falhou, tentando Llama:", e1);
       try {
-        return await callOpenRouter("meta-llama/llama-3.1-8b-instruct:free", system, messages);
+        return await callOpenRouter("meta-llama/llama-3.1-8b-instruct:free", system, messages, imageUrl);
       } catch (e2) {
-        console.warn("Llama free falhou, tentando Gemini Flash via OpenRouter:", e2);
-
-        // ── 3. Gemini 2.0 via OpenRouter (fallback) ───────────────────────
+        errors.push("Llama: " + (e2 instanceof Error ? e2.message : String(e2)));
+        console.warn("Llama falhou, tentando Mistral:", e2);
         try {
-          return await callOpenRouter("google/gemini-2.0-flash-001", system, messages);
+          return await callOpenRouter("mistralai/mistral-7b-instruct:free", system, messages, imageUrl);
         } catch (e3) {
-          console.warn("Gemini via OpenRouter falhou:", e3);
+          errors.push("Mistral: " + (e3 instanceof Error ? e3.message : String(e3)));
+          console.error("Todos os modelos falharam:", errors);
+          throw new Error("Kairos AI indisponivel. Erros: " + errors.join(" | "));
         }
       }
     }
   }
 
-  // ── 4. Gemini direto (último recurso — pode ter rate limit 429) ───────────
-  if (process.env.GOOGLE_AI_API_KEY) {
-    try {
-      return await callGemini("gemini-1.5-flash-latest", system, messages);
-    } catch (e) {
-      console.warn("Gemini direto falhou:", e);
-    }
-  }
-
-  throw new Error("IA temporariamente indisponível. Tente novamente em instantes.");
+  throw new Error("OPENROUTER_API_KEY nao configurada.");
 }
