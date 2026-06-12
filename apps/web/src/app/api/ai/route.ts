@@ -22,9 +22,10 @@ export async function POST(req: NextRequest) {
       messages: Array<{ role: string; content: string }>;
       context?: { churchName?: string; userRole?: string; activeModule?: string };
       module?: AIModule;
+        imageUrl?: string;
     };
 
-    const { messages, context, module = "chat" } = body;
+    const { messages, context, module = "chat", imageUrl } = body;
     const lastMessage = messages.at(-1);
     if (!lastMessage) return NextResponse.json({ error: "Mensagem vazia" }, { status: 400 });
 
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
       activeModule: module,
       activeModules: (church?.active_modules as string[] | undefined) ?? [],
       history,
-    }, module);
+    }, module, imageUrl);
 
     return NextResponse.json({ content });
   } catch (err) {
