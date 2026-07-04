@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     STORAGE_DIR: str = "storage"
 
     OPENROUTER_API_KEY: str = ""
-    OPENROUTER_MODEL: str = "google/gemini-flash-1.5"
+    OPENROUTER_MODEL: str = "qwen/qwen-2.5-72b-instruct"
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     OPENROUTER_SITE_URL: str = ""
     OPENROUTER_SITE_NAME: str = "Kairos Sede Sorocaba"
