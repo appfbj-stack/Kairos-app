@@ -12,6 +12,7 @@ from app.services.assistente import (
     ACOES_POR_PERFIL,
 )
 
+
 router = APIRouter(prefix="/assistente", tags=["assistente"])
 
 

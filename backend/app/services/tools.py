@@ -368,3 +368,200 @@ register_tool(Tool(
     },
     handler=_transferir_membro,
 ))
+
+def _buscar_aniversariantes(args: dict, ctx: ToolContext) -> str:
+    from app.models import Membro
+    hoje = date.today()
+    mes = args.get("mes") or hoje.month
+    try:
+        mes = int(mes)
+    except ValueError:
+        mes = hoje.month
+    q = ctx.db.query(Membro).filter(
+        Membro.tenant_id == ctx.tenant_id,
+        Membro.status == "ativo",
+    )
+    membros = q.all()
+    aniversariantes = [m for m in membros if m.data_nascimento and m.data_nascimento.month == mes]
+    if not aniversariantes:
+        return f"Nenhum aniversariante no mês {mes}."
+    meses_pt = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                 "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+    linhas = [f"Aniversariantes de {meses_pt[mes]}:"]
+    for m in sorted(aniversariantes, key=lambda x: x.data_nascimento.day if x.data_nascimento else 0):
+        dia = m.data_nascimento.day if m.data_nascimento else "??"
+        tel = m.whatsapp or m.telefone or "-"
+        linhas.append(f"- {m.nome} — {dia:02d}/{mes:02d} | Tel: {tel}")
+    return "\n".join(linhas)
+
+def _buscar_eventos(args: dict, ctx: ToolContext) -> str:
+    from app.models import Evento, Congregacao
+    from datetime import datetime, timezone
+    dias = int(args.get("dias") or 30)
+    data_limite = datetime.now(timezone.utc)
+    if args.get("data_inicio"):
+        try:
+            data_limite = datetime.fromisoformat(args["data_inicio"])
+        except ValueError:
+            pass
+    data_fim = args.get("data_fim")
+    if data_fim:
+        try:
+            data_fim = datetime.fromisoformat(data_fim)
+        except ValueError:
+            data_fim = None
+    else:
+        from datetime import timedelta
+        data_fim = data_limite + timedelta(days=dias)
+    q = ctx.db.query(Evento).filter(
+        Evento.tenant_id == ctx.tenant_id,
+        Evento.data_inicio >= data_limite,
+        Evento.data_inicio <= data_fim,
+    ).order_by(Evento.data_inicio).limit(20)
+    eventos = q.all()
+    if not eventos:
+        return f"Nenhum evento encontrado nos próximos {dias} dias."
+    linhas = []
+    for e in eventos:
+        cong = ctx.db.query(Congregacao).filter(Congregacao.id == e.congregacao_id).first()
+        cong_nome = cong.nome if cong else "-"
+        data = e.data_inicio.strftime("%d/%m/%Y %H:%M") if e.data_inicio else "-"
+        linhas.append(f"- {e.titulo} ({e.tipo}) | {data} | {cong_nome}")
+    return "Eventos encontrados:\n" + "\n".join(linhas)
+
+def _listar_congregacoes(args: dict, ctx: ToolContext) -> str:
+    from app.models import Congregacao, Membro
+    q = ctx.db.query(Congregacao).filter(
+        Congregacao.tenant_id == ctx.tenant_id,
+    ).order_by(Congregacao.nome)
+    congregacoes = q.all()
+    if not congregacoes:
+        return "Nenhuma congregação cadastrada."
+    linhas = []
+    for c in congregacoes:
+        total = ctx.db.query(Membro).filter(
+            Membro.tenant_id == ctx.tenant_id,
+            Membro.congregacao_id == c.id,
+        ).count()
+        linhas.append(f"- {c.nome} | {c.cidade or '-'}/{c.estado or '-'} | {total} membros | ID: {c.id}")
+    return "Congregações:\n" + "\n".join(linhas)
+
+def _cadastrar_congregacao(args: dict, ctx: ToolContext) -> str:
+    from app.models import Congregacao
+    nome = (args.get("nome") or "").strip()
+    if not nome:
+        return "[erro: nome é obrigatório]"
+    existente = ctx.db.query(Congregacao).filter(
+        Congregacao.tenant_id == ctx.tenant_id,
+        Congregacao.nome.ilike(nome),
+    ).first()
+    if existente:
+        return f"[duplicado] Já existe congregação '{nome}' (ID: {existente.id})"
+    cong = Congregacao(
+        id=new_id(),
+        tenant_id=ctx.tenant_id,
+        nome=nome,
+        endereco=(args.get("endereco") or "").strip() or None,
+        cidade=(args.get("cidade") or "").strip() or None,
+        estado=(args.get("estado") or "").strip() or None,
+        telefone=(args.get("telefone") or "").strip() or None,
+    )
+    ctx.db.add(cong)
+    ctx.db.commit()
+    return f"Congregação '{nome}' cadastrada com sucesso! ID: {cong.id}"
+
+def _listar_obreiros(args: dict, ctx: ToolContext) -> str:
+    from app.models import Obreiro, Congregacao
+    q = ctx.db.query(Obreiro).filter(
+        Obreiro.tenant_id == ctx.tenant_id,
+        Obreiro.ativo == True,
+    ).all()
+    if not q:
+        return "Nenhum obreiro encontrado."
+    linhas = []
+    for o in q:
+        membro = o.membro
+        nome_membro = membro.nome if membro else "?"
+        cong = ctx.db.query(Congregacao).filter(Congregacao.id == o.congregacao_id).first()
+        cong_nome = cong.nome if cong else "-"
+        val = o.credencial_validade.strftime("%d/%m/%Y") if o.credencial_validade else "-"
+        linhas.append(f"- {nome_membro} | {o.categoria} | {cong_nome} | Validade: {val}")
+    return "Obreiros:\n" + "\n".join(linhas)
+
+def _resumo_dashboard(args: dict, ctx: ToolContext) -> str:
+    from app.models import Membro, Congregacao, Obreiro, Evento
+    from datetime import datetime, timezone, timedelta
+    total_membros = ctx.db.query(Membro).filter(Membro.tenant_id == ctx.tenant_id).count()
+    ativos = ctx.db.query(Membro).filter(Membro.tenant_id == ctx.tenant_id, Membro.status == "ativo").count()
+    congregacoes = ctx.db.query(Congregacao).filter(Congregacao.tenant_id == ctx.tenant_id).count()
+    obreiros = ctx.db.query(Obreiro).filter(Obreiro.tenant_id == ctx.tenant_id, Obreiro.ativo == True).count()
+    hoje = datetime.now(timezone.utc)
+    eventos_proximos = ctx.db.query(Evento).filter(
+        Evento.tenant_id == ctx.tenant_id,
+        Evento.data_inicio >= hoje,
+        Evento.data_inicio <= hoje + timedelta(days=30),
+    ).count()
+    return (
+        f"Resumo da Igreja:\n"
+        f"- Membros: {total_membros} ({ativos} ativos)\n"
+        f"- Congregações: {congregacoes}\n"
+        f"- Obreiros: {obreiros}\n"
+        f"- Próximos eventos (30 dias): {eventos_proximos}"
+    )
+
+def _buscar_usuario(args: dict, ctx: ToolContext) -> str:
+    from app.models import Usuario
+    termo = (args.get("nome") or args.get("email") or "").strip()
+    if not termo:
+        return "[erro: informe nome ou email do usuário]"
+    q = ctx.db.query(Usuario).filter(Usuario.tenant_id == ctx.tenant_id)
+    if "@" in termo:
+        q = q.filter(Usuario.email.ilike(f"%{termo}%"))
+    else:
+        q = q.filter(Usuario.nome.ilike(f"%{termo}%"))
+    usuarios = q.order_by(Usuario.nome).limit(10).all()
+    if not usuarios:
+        return "Nenhum usuário encontrado."
+    linhas = [f"- {u.nome} | {u.email} | Perfil: {u.perfil} | ID: {u.id}"]
+    return "Usuários encontrados:\n" + "\n".join(linhas)
+
+register_tool(Tool(name="buscar_aniversariantes", description="Busca aniversariantes do mês (ou de um mês específico).",
+    parameters={"type": "object", "properties": {"mes": {"type": "integer", "description": "Número do mês (1=Janeiro, 2=Fevereiro...). Se omitido, usa mês atual."}}},
+    handler=_buscar_aniversariantes))
+
+register_tool(Tool(name="buscar_eventos", description="Busca eventos futuros ou por período.",
+    parameters={"type": "object", "properties": {
+        "dias": {"type": "integer", "description": "Quantidade de dias para buscar (padrão 30)"},
+        "data_inicio": {"type": "string", "description": "Data de início no formato ISO"},
+        "data_fim": {"type": "string", "description": "Data de fim no formato ISO"},
+    }},
+    handler=_buscar_eventos))
+
+register_tool(Tool(name="listar_congregacoes", description="Lista todas as congregações cadastradas com total de membros.",
+    parameters={"type": "object", "properties": {}},
+    handler=_listar_congregacoes))
+
+register_tool(Tool(name="cadastrar_congregacao", description="Cadastra uma nova congregação.",
+    parameters={"type": "object", "properties": {
+        "nome": {"type": "string", "description": "Nome da congregação"},
+        "endereco": {"type": "string", "description": "Endereço"},
+        "cidade": {"type": "string", "description": "Cidade"},
+        "estado": {"type": "string", "description": "Estado (sigla de 2 letras)"},
+        "telefone": {"type": "string", "description": "Telefone de contato"},
+    }, "required": ["nome"]},
+    handler=_cadastrar_congregacao))
+
+register_tool(Tool(name="listar_obreiros", description="Lista todos os obreiros ativos com suas categorias e congregações.",
+    parameters={"type": "object", "properties": {}},
+    handler=_listar_obreiros))
+
+register_tool(Tool(name="resumo_dashboard", description="Retorna resumo completo: total de membros, ativos, congregações, obreiros e próximos eventos.",
+    parameters={"type": "object", "properties": {}},
+    handler=_resumo_dashboard))
+
+register_tool(Tool(name="buscar_usuario", description="Busca usuários do sistema por nome ou email.",
+    parameters={"type": "object", "properties": {
+        "nome": {"type": "string", "description": "Nome do usuário"},
+        "email": {"type": "string", "description": "Email do usuário"},
+    }},
+    handler=_buscar_usuario))

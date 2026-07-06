@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 import uuid as uuid_lib
@@ -188,7 +189,7 @@ AÇÕES DISPONÍVEIS: {json.dumps(acoes_disponiveis, ensure_ascii=False)}
 CAMPOS DE CADASTRO DE MEMBRO:
 {json.dumps([{"campo": c[0], "descricao": c[1], "obrigatorio": c[2]} for c in CAMPOS_MEMBRO], ensure_ascii=False, indent=2)}
 
-FORMATO DE RESPOSTA — sempre JSON válido SEMPRE:
+FORMATO DE RESPOSTA — sempre JSON valido SEMPRE:
 {{
   "resposta": "texto para o usuário",
   "acao": null,
@@ -201,102 +202,67 @@ FORMATO DE RESPOSTA — sempre JSON válido SEMPRE:
 
 REGRAS:
 
-1. RECONHECIMENTO DE INTENÇÃO
-   Se o usuário desejar cadastrar, alterar, atualizar, mover, localizar ou consultar um membro, entre automaticamente no Modo Agente de Cadastro de Membros.
-   Não peça para o usuário procurar menus. Você deve conduzir toda a operação.
+1. RECONHECIMENTO DE INTENCAO
+   - Se o usuario desejar cadastrar/alterar/atualizar/mover/localizar/consultar membros → Modo Agente de Cadastro
+   - Se desejar eventos, congregacoes, obreiros, aniversariantes, dashboard → use o campo "acao" no JSON da resposta
+   - Nao peca para o usuario procurar menus. Conduza toda a operacao.
 
 2. MODO AGENTE DE CADASTRO
-   Quando identificar intenção de cadastrar um membro, responda:
-   "Perfeito! Vou realizar o cadastro do novo membro. Farei algumas perguntas e preencherei automaticamente a ficha. Você pode responder uma pergunta por vez ou informar todos os dados de uma única mensagem."
+   Quando identificar intencao de cadastrar um membro, responda:
+   "Perfeito! Vou realizar o cadastro do novo membro. Farei algumas perguntas e preencherei automaticamente a ficha. Voce pode responder uma pergunta por vez ou informar todos os dados de uma unica mensagem."
 
 3. PREENCHIMENTO INTELIGENTE
-   Enquanto conversa, extraia automaticamente as informações da fala do usuário.
-   Nunca pergunte novamente por uma informação que já foi fornecida.
-   Exemplo: usuário diz "José Carlos da Silva nasceu em 15/03/1988, é casado e mora na Rua Central 250"
-   → Você deve preencher automaticamente: nome, data_nascimento, estado_civil, endereço
+   Enquanto conversa, extraia automaticamente as informacoes da fala do usuario.
+   Nunca pergunte novamente por uma informacao que ja foi fornecida.
 
-4. CADASTRO NA SEDE
-   Se o usuário disser "Cadastre na Sede" → unidade = SEDE
+4. CADASTRO NA SEDE / CONGREGACAO
+   "Cadastre na Sede" → unidade = SEDE
+   "Cadastre na Congregacao Cajuru" → unidade = CONGREGACAO, congregacao_nome = Cajuru
 
-5. CADASTRO EM CONGREGAÇÃO
-   Se o usuário disser "Cadastre na Congregação Cajuru" → unidade = CONGREGAÇÃO, congregacao_nome = Cajuru
+5. ATUALIZACAO
+   Localize o membro primeiro (use acao buscar_membro), depois atualize APENAS os campos informados.
 
-6. ATUALIZAÇÃO DE CADASTRO
-   Quando o usuário solicitar alteração de dados:
-   - Localize o membro primeiro
-   - Atualize APENAS os campos informados
-   - Nunca altere informações não mencionadas
+6. TRANSFERENCIA
+   Localize o membro, encontre a congregacao destino, use acao transferir_membro.
 
-7. TRANSFERÊNCIA
-   Quando solicitado "Transferir José para a Congregação X":
-   - Localize o membro
-   - Altere a congregação
-   - Registre a data da transferência nas observações
+7. CONVERSA NATURAL
+   Aceite informacoes em qualquer ordem. Extraia automaticamente cada informacao.
 
-8. CONVERSA NATURAL
-   Aceite informações em qualquer ordem. Extraia automaticamente cada informação.
-   Preencha os campos corretos mesmo que venham misturados.
-
-9. VALIDAÇÃO
-   Antes de confirmar o salvamento:
-   - Validar CPF (formato e dígitos verificadores)
-   - Validar telefone (mínimo 10 dígitos)
-   - Verificar e-mail (formato básico)
-   - Verificar duplicidade (mesmo nome ou CPF)
+8. VALIDACAO
+   Antes de salvar: valide CPF e telefone, verifique duplicidade.
    Se existir membro semelhante, pergunte: "Encontrei um cadastro parecido. Deseja atualizar o existente ou criar um novo?"
 
-10. CONFIRMAÇÃO FINAL
-    Antes de gravar, apresente um resumo dos dados coletados no campo "resposta".
-    Pergunte: "Deseja salvar este cadastro?"
-    Use o campo aguardando_confirmacao como true e preencha o campo acao com os dados completos.
+9. CONFIRMACAO FINAL
+   Apos coletar todos os dados de um novo membro, apresente o resumo e pergunte "Deseja salvar?" com aguardando_confirmacao=true e o campo acao preenchido.
 
-11. INFORMAÇÕES FALTANTES
-    Caso algum dado obrigatório esteja ausente, pergunte apenas pelo que falta.
-    Liste os campos faltantes no campo "campos_faltando".
-    Nunca repita perguntas sobre informações já obtidas.
+10. CARD DE AJUDA
+    Se o usuario pedir ajuda/instrucoes, preencha card_ajuda.
 
-12. RESPOSTA COM AÇÃO
-    Exemplo de ação de cadastro:
-    {{
-      "resposta": "Revise as informações abaixo:\\n   Nome: João Silva\\n   Data de nascimento: 1988-03-15\\n   Estado civil: casado\\n   Endereço: Rua Central 250\\n\\nDeseja salvar este cadastro?",
-      "acao": {{"tipo": "cadastrar_membro", "dados": {{"nome": "João Silva", "data_nascimento": "1988-03-15", "estado_civil": "casado", "endereco": "Rua Central 250"}}}},
-      "aguardando_confirmacao": true,
-      "dados_coletados": {{"nome": "João Silva", "data_nascimento": "1988-03-15", "estado_civil": "casado", "endereco": "Rua Central 250"}},
-      "campos_faltando": ["telefone", "cpf", "whatsapp"]
-    }}
-
-    Exemplo de busca de membro:
-    {{
-      "resposta": "Encontrei João Silva, CPF: 123.456.789-00. O que deseja atualizar?",
-      "acao": {{"tipo": "buscar_membro", "dados": {{"nome": "João Silva"}}}},
-      "dados_coletados": {{"membro_encontrado": {{"id": "uuid", "nome": "João Silva"}}}}
-    }}
-
-    Exemplo de atualização:
-    {{
-      "resposta": "Vou atualizar apenas o telefone de João Silva para (15) 99999-9999. Confirma?",
-      "acao": {{"tipo": "atualizar_membro", "dados": {{"membro_id": "uuid", "telefone": "15999999999"}}}},
-      "aguardando_confirmacao": true
-    }}
-
-    Exemplo de transferência:
-    {{
-      "resposta": "Vou transferir José da Sede para a Congregação Cajuru. Confirma?",
-      "acao": {{"tipo": "transferir_membro", "dados": {{"membro_id": "uuid", "congregacao_nome": "Cajuru"}}}},
-      "aguardando_confirmacao": true
-    }}
-
-    Exemplo de ajuda:
-    {{
-      "resposta": "Veja como cadastrar um membro:",
-      "card_ajuda": {{"titulo": "Como cadastrar um membro", "passos": ["Fale comigo naturalmente", "Informe os dados do membro", "Confirme o cadastro", "Pronto!"]}},
-      "acao": null
-    }}
-
-Lembre-se: você é um secretário inteligente que entende o contexto, faz perguntas quando necessário, valida as informações e executa o cadastro completo dentro do sistema. O usuário nunca precisa navegar em menus ou preencher formulários manualmente."""
+11. Lembre-se: voce e um secretario inteligente que entende o contexto, faz perguntas quando necessario, valida as informacoes e executa operacoes dentro do sistema. O usuario nunca precisa navegar em menus ou preencher formularios manualmente."""
 
 
-async def chamar_llm(mensagens):
+def _call_llm(base_url, headers, payload):
+    import logging
+    logger = logging.getLogger("uvicorn")
+    logger.info(f"[_call_llm] POST {base_url}/chat/completions | tools={'tools' in payload}")
+    try:
+        with httpx.Client(timeout=300) as client:
+            r = client.post(
+                f"{base_url}/chat/completions",
+                headers=headers, json=payload,
+            )
+            r.raise_for_status()
+            data = r.json()
+            msg = data["choices"][0]["message"]
+            tc = bool(msg.get("tool_calls"))
+            logger.info(f"[_call_llm] OK status={r.status_code} finish={data['choices'][0].get('finish_reason')} tool_calls={tc}")
+            return data
+    except Exception as e:
+        logger.error(f"[_call_llm] ERROR {type(e).__name__}: {str(e)[:200]}")
+        raise
+
+
+async def chamar_llm(mensagens, tools=None, tool_executor=None, max_tool_rounds=3):
     if not settings.OPENROUTER_API_KEY:
         return {
             "resposta": "Assistente IA nao configurado. Configure OPENROUTER_API_KEY.",
@@ -306,28 +272,73 @@ async def chamar_llm(mensagens):
     headers = {
         "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://kairos.app",
-        "X-Title": "Kairos Igreja",
     }
     payload = {
         "model": settings.OPENROUTER_MODEL,
         "messages": mensagens,
         "max_tokens": settings.ASSISTENTE_MAX_TOKENS,
-        "temperature": 0.4,
-        "response_format": {"type": "json_object"},
+        "temperature": 0.1,
     }
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.post(
-            f"{settings.OPENROUTER_BASE_URL}/chat/completions",
-            headers=headers, json=payload,
+    if tools:
+        payload["tools"] = tools
+    else:
+        payload["response_format"] = {"type": "json_object"}
+
+    for _ in range(max_tool_rounds):
+        data = await asyncio.to_thread(
+            _call_llm,
+            settings.OPENROUTER_BASE_URL, headers, payload,
         )
-        resp.raise_for_status()
-        content = resp.json()["choices"][0]["message"]["content"]
-    try:
-        return json.loads(content)
-    except json.JSONDecodeError:
-        return {"resposta": content, "acao": None, "card_ajuda": None,
-                "aguardando_confirmacao": False, "dados_coletados": {}}
+        msg = data["choices"][0]["message"]
+
+        if msg.get("tool_calls") and tool_executor:
+            results = []
+            for tc in msg["tool_calls"]:
+                name = tc["function"]["name"]
+                try:
+                    args = json.loads(tc["function"]["arguments"])
+                except json.JSONDecodeError:
+                    args = {}
+                result = tool_executor(name, args)
+                results.append({"tool": name, "result": str(result)[:500]})
+                mensagens.append({
+                    "role": "tool",
+                    "tool_call_id": tc["id"],
+                    "content": str(result),
+                })
+            resumo = "\n\n".join(r['result'] for r in results)
+            if len(resumo) > 800:
+                resumo = resumo[:800] + "..."
+            return {
+                "resposta": resumo,
+                "acao": None, "card_ajuda": None,
+                "aguardando_confirmacao": False, "dados_coletados": {},
+                "tool_used": True,
+            }
+
+        content = msg.get("content") or ""
+        if content.strip():
+            try:
+                parsed = json.loads(content)
+                if isinstance(parsed, dict) and "resposta" in parsed:
+                    parsed.setdefault("tool_used", bool(tools))
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+        if tools:
+            return {"resposta": content, "acao": None, "card_ajuda": None,
+                    "aguardando_confirmacao": False, "dados_coletados": {},
+                    "tool_used": True}
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            return {"resposta": content, "acao": None, "card_ajuda": None,
+                    "aguardando_confirmacao": False, "dados_coletados": {}}
+
+    tool_count = sum(1 for m in mensagens if m.get("role") == "tool")
+    return {"resposta": f"Ferramentas executadas ({tool_count} chamadas). Consulte os dados retornados acima.",
+            "acao": None, "card_ajuda": None,
+            "aguardando_confirmacao": False, "dados_coletados": {}, "tool_used": bool(tools)}
 
 
 def _parse_date_safe(valor: str | None) -> date | None:

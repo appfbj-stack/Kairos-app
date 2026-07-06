@@ -9,6 +9,25 @@ import Callback from './pages/auth/Callback';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import DashboardPlaceholder from './pages/DashboardPlaceholder';
+import DashboardMembros from './pages/dashboards/DashboardMembros';
+import DashboardCongregacoes from './pages/dashboards/DashboardCongregacoes';
+import DashboardEventos from './pages/dashboards/DashboardEventos';
+import DashboardAniversariantes from './pages/dashboards/DashboardAniversariantes';
+import DashboardFinanceiro from './pages/dashboards/DashboardFinanceiro';
+import DashboardPastores from './pages/dashboards/DashboardPastores';
+import DashboardObreiros from './pages/dashboards/DashboardObreiros';
+import DashboardDepartamentos from './pages/dashboards/DashboardDepartamentos';
+import DashboardCelulas from './pages/dashboards/DashboardCelulas';
+import DashboardCultos from './pages/dashboards/DashboardCultos';
+import DashboardEscalas from './pages/dashboards/DashboardEscalas';
+import DashboardPatrimonio from './pages/dashboards/DashboardPatrimonio';
+import DashboardVeiculos from './pages/dashboards/DashboardVeiculos';
+import DashboardProjetos from './pages/dashboards/DashboardProjetos';
+import DashboardDocumentos from './pages/dashboards/DashboardDocumentos';
+import DashboardBiblioteca from './pages/dashboards/DashboardBiblioteca';
+import DashboardComunicacao from './pages/dashboards/DashboardComunicacao';
+import DashboardRelatorios from './pages/dashboards/DashboardRelatorios';
+import MapaMinisterial from './pages/MapaMinisterial';
 import Perfil from './pages/perfil/Perfil';
 import Usuarios from './pages/admin/Usuarios';
 import Configuracoes from './pages/admin/Configuracoes';
@@ -73,6 +92,25 @@ export default function App() {
             } />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<RotaProtegida><DashboardPlaceholder /></RotaProtegida>} />
+            <Route path="/dashboard/membros" element={<RotaProtegida><DashboardMembros /></RotaProtegida>} />
+            <Route path="/dashboard/congregacoes" element={<RotaProtegida><RotaAdmin><DashboardCongregacoes /></RotaAdmin></RotaProtegida>} />
+            <Route path="/dashboard/eventos" element={<RotaProtegida><DashboardEventos /></RotaProtegida>} />
+            <Route path="/dashboard/aniversariantes" element={<RotaProtegida><DashboardAniversariantes /></RotaProtegida>} />
+            <Route path="/dashboard/financeiro" element={<RotaProtegida><DashboardFinanceiro /></RotaProtegida>} />
+            <Route path="/dashboard/pastores" element={<RotaProtegida><DashboardPastores /></RotaProtegida>} />
+            <Route path="/dashboard/obreiros" element={<RotaProtegida><DashboardObreiros /></RotaProtegida>} />
+            <Route path="/dashboard/departamentos" element={<RotaProtegida><DashboardDepartamentos /></RotaProtegida>} />
+            <Route path="/dashboard/celulas" element={<RotaProtegida><DashboardCelulas /></RotaProtegida>} />
+            <Route path="/dashboard/cultos" element={<RotaProtegida><DashboardCultos /></RotaProtegida>} />
+            <Route path="/dashboard/escalas" element={<RotaProtegida><DashboardEscalas /></RotaProtegida>} />
+            <Route path="/dashboard/patrimonio" element={<RotaProtegida><DashboardPatrimonio /></RotaProtegida>} />
+            <Route path="/dashboard/veiculos" element={<RotaProtegida><DashboardVeiculos /></RotaProtegida>} />
+            <Route path="/dashboard/projetos" element={<RotaProtegida><DashboardProjetos /></RotaProtegida>} />
+            <Route path="/dashboard/documentos" element={<RotaProtegida><DashboardDocumentos /></RotaProtegida>} />
+            <Route path="/dashboard/biblioteca" element={<RotaProtegida><DashboardBiblioteca /></RotaProtegida>} />
+            <Route path="/dashboard/comunicacao" element={<RotaProtegida><DashboardComunicacao /></RotaProtegida>} />
+            <Route path="/dashboard/relatorios" element={<RotaProtegida><DashboardRelatorios /></RotaProtegida>} />
+            <Route path="/mapa-ministerial" element={<RotaProtegida><MapaMinisterial /></RotaProtegida>} />
             <Route path="/congregacoes" element={<RotaProtegida><RotaAdmin><Congregacoes /></RotaAdmin></RotaProtegida>} />
             <Route path="/membros" element={<RotaProtegida><Membros /></RotaProtegida>} />
             <Route path="/obreiros" element={<RotaProtegida><Obreiros /></RotaProtegida>} />

@@ -74,6 +74,7 @@ from app.routes import (
 from app.routes import assistente
 from app.routes import importacao
 from app.routes import assistant, tenant
+from app.routes import tools_handler
 
 app = FastAPI(title=f"{settings.APP_NAME} API", version="1.0.0", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -98,6 +99,7 @@ app.include_router(assistente.router, prefix="/api")
 app.include_router(importacao.router, prefix="/api")
 app.include_router(assistant.router, prefix="/api")
 app.include_router(tenant.router, prefix="/api")
+app.include_router(tools_handler.router, prefix="/api")
 
 @app.get("/api/health")
 def health():

@@ -37,6 +37,13 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+docker-compose.vps.yml
+
+# Test / Debug (contain credentials)
+test_auth.sh
+test_db.sh
+test_ext.sh
+check_schema.py
 
 # Uploads (volumes)
 /uploads/
