@@ -8,7 +8,7 @@ import Login from './pages/auth/Login';
 import Callback from './pages/auth/Callback';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
-import Dashboard from './pages/dashboard/Dashboard';
+import DashboardPlaceholder from './pages/DashboardPlaceholder';
 import Perfil from './pages/perfil/Perfil';
 import Usuarios from './pages/admin/Usuarios';
 import Configuracoes from './pages/admin/Configuracoes';
@@ -72,7 +72,7 @@ export default function App() {
               </div>
             } />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<RotaProtegida><Dashboard /></RotaProtegida>} />
+            <Route path="/dashboard" element={<RotaProtegida><DashboardPlaceholder /></RotaProtegida>} />
             <Route path="/congregacoes" element={<RotaProtegida><RotaAdmin><Congregacoes /></RotaAdmin></RotaProtegida>} />
             <Route path="/membros" element={<RotaProtegida><Membros /></RotaProtegida>} />
             <Route path="/obreiros" element={<RotaProtegida><Obreiros /></RotaProtegida>} />
