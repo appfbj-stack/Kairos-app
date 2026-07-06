@@ -18,4 +18,12 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  {
+    // Primitivas Shadcn reexportam primitivos do Radix (não-componentes) — desativa
+    // a regra de fast-refresh nesses arquivos, padrão convencional shadcn-ui.
+    files: ['src/components/ui/**/*.{js,jsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])
