@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export const useAssistenteStore = create((set, get) => ({
+export const useAssistenteStore = create((set) => ({
   aberto: false,
   historico: [],
   carregando: false,

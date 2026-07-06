@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Bot, X, Send, Mic, MicOff, Trash2, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useAssistenteStore } from '../../stores/assistente';
 import { useAuthStore } from '../../stores/auth';
@@ -32,7 +32,6 @@ const SUGESTOES_TELA = {
 
 export default function AssistenteIA() {
   const location = useLocation();
-  const navigate = useNavigate();
   const {
     aberto, alternar, fechar, historico, carregando, acaoPendente,
     adicionarMensagem, setCarregando, setAcaoPendente, limparAcaoPendente, limparHistorico,

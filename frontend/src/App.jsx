@@ -49,7 +49,7 @@ function RotaMaster({ children }) {
 
 export default function App() {
   const { carregarUsuario } = useAuthStore();
-  useEffect(() => { carregarUsuario(); }, []);
+  useEffect(() => { carregarUsuario(); }, [carregarUsuario]);
 
   return (
     <ThemeProvider>
