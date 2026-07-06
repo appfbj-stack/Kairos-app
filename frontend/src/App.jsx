@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './app/providers/ThemeProvider';
 import QueryProvider from './app/providers/QueryProvider';
-import { useAuthStore } from './stores/auth';
 import RootLayout from './components/layout/RootLayout';
 import Login from './pages/auth/Login';
 import Callback from './pages/auth/Callback';
@@ -43,33 +41,11 @@ import Batismos from './pages/batismos/Batismos';
 import Agenda from './pages/agenda/Agenda';
 import Privacidade from './pages/privacidade/Privacidade';
 
-function RotaProtegida({ children }) {
-  const { usuario, token, carregando } = useAuthStore();
-  if (carregando) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
-  if (!token && !usuario) return <Navigate to="/login" replace />;
+function RotaLivre({ children }) {
   return <RootLayout>{children}</RootLayout>;
 }
 
-function RotaAdmin({ children }) {
-  const { isAdmin } = useAuthStore();
-  if (!isAdmin()) return <Navigate to="/dashboard" replace />;
-  return children;
-}
-
-function RotaMaster({ children }) {
-  const { isMaster } = useAuthStore();
-  if (!isMaster()) return <Navigate to="/dashboard" replace />;
-  return children;
-}
-
 export default function App() {
-  const { carregarUsuario } = useAuthStore();
-  useEffect(() => { carregarUsuario(); }, [carregarUsuario]);
-
   return (
     <ThemeProvider>
       <QueryProvider>
@@ -91,39 +67,39 @@ export default function App() {
               </div>
             } />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<RotaProtegida><DashboardPlaceholder /></RotaProtegida>} />
-            <Route path="/dashboard/membros" element={<RotaProtegida><DashboardMembros /></RotaProtegida>} />
-            <Route path="/dashboard/congregacoes" element={<RotaProtegida><RotaAdmin><DashboardCongregacoes /></RotaAdmin></RotaProtegida>} />
-            <Route path="/dashboard/eventos" element={<RotaProtegida><DashboardEventos /></RotaProtegida>} />
-            <Route path="/dashboard/aniversariantes" element={<RotaProtegida><DashboardAniversariantes /></RotaProtegida>} />
-            <Route path="/dashboard/financeiro" element={<RotaProtegida><DashboardFinanceiro /></RotaProtegida>} />
-            <Route path="/dashboard/pastores" element={<RotaProtegida><DashboardPastores /></RotaProtegida>} />
-            <Route path="/dashboard/obreiros" element={<RotaProtegida><DashboardObreiros /></RotaProtegida>} />
-            <Route path="/dashboard/departamentos" element={<RotaProtegida><DashboardDepartamentos /></RotaProtegida>} />
-            <Route path="/dashboard/celulas" element={<RotaProtegida><DashboardCelulas /></RotaProtegida>} />
-            <Route path="/dashboard/cultos" element={<RotaProtegida><DashboardCultos /></RotaProtegida>} />
-            <Route path="/dashboard/escalas" element={<RotaProtegida><DashboardEscalas /></RotaProtegida>} />
-            <Route path="/dashboard/patrimonio" element={<RotaProtegida><DashboardPatrimonio /></RotaProtegida>} />
-            <Route path="/dashboard/veiculos" element={<RotaProtegida><DashboardVeiculos /></RotaProtegida>} />
-            <Route path="/dashboard/projetos" element={<RotaProtegida><DashboardProjetos /></RotaProtegida>} />
-            <Route path="/dashboard/documentos" element={<RotaProtegida><DashboardDocumentos /></RotaProtegida>} />
-            <Route path="/dashboard/biblioteca" element={<RotaProtegida><DashboardBiblioteca /></RotaProtegida>} />
-            <Route path="/dashboard/comunicacao" element={<RotaProtegida><DashboardComunicacao /></RotaProtegida>} />
-            <Route path="/dashboard/relatorios" element={<RotaProtegida><DashboardRelatorios /></RotaProtegida>} />
-            <Route path="/mapa-ministerial" element={<RotaProtegida><MapaMinisterial /></RotaProtegida>} />
-            <Route path="/congregacoes" element={<RotaProtegida><RotaAdmin><Congregacoes /></RotaAdmin></RotaProtegida>} />
-            <Route path="/membros" element={<RotaProtegida><Membros /></RotaProtegida>} />
-            <Route path="/obreiros" element={<RotaProtegida><Obreiros /></RotaProtegida>} />
-            <Route path="/patrimonio" element={<RotaProtegida><Patrimonio /></RotaProtegida>} />
-            <Route path="/carteirinhas" element={<RotaProtegida><Carteirinhas /></RotaProtegida>} />
-            <Route path="/batismos" element={<RotaProtegida><Batismos /></RotaProtegida>} />
-            <Route path="/agenda" element={<RotaProtegida><Agenda /></RotaProtegida>} />
-            <Route path="/perfil" element={<RotaProtegida><Perfil /></RotaProtegida>} />
-            <Route path="/admin/usuarios" element={<RotaProtegida><RotaAdmin><Usuarios /></RotaAdmin></RotaProtegida>} />
-            <Route path="/admin/configuracoes" element={<RotaProtegida><RotaAdmin><Configuracoes /></RotaAdmin></RotaProtegida>} />
-            <Route path="/admin/logs" element={<RotaProtegida><RotaAdmin><Logs /></RotaAdmin></RotaProtegida>} />
-            <Route path="/master/licenca" element={<RotaProtegida><RotaMaster><Licenca /></RotaMaster></RotaProtegida>} />
-            <Route path="/master/sistema" element={<RotaProtegida><RotaMaster><Sistema /></RotaMaster></RotaProtegida>} />
+            <Route path="/dashboard" element={<RotaLivre><DashboardPlaceholder /></RotaLivre>} />
+            <Route path="/dashboard/membros" element={<RotaLivre><DashboardMembros /></RotaLivre>} />
+            <Route path="/dashboard/congregacoes" element={<RotaLivre><DashboardCongregacoes /></RotaLivre>} />
+            <Route path="/dashboard/eventos" element={<RotaLivre><DashboardEventos /></RotaLivre>} />
+            <Route path="/dashboard/aniversariantes" element={<RotaLivre><DashboardAniversariantes /></RotaLivre>} />
+            <Route path="/dashboard/financeiro" element={<RotaLivre><DashboardFinanceiro /></RotaLivre>} />
+            <Route path="/dashboard/pastores" element={<RotaLivre><DashboardPastores /></RotaLivre>} />
+            <Route path="/dashboard/obreiros" element={<RotaLivre><DashboardObreiros /></RotaLivre>} />
+            <Route path="/dashboard/departamentos" element={<RotaLivre><DashboardDepartamentos /></RotaLivre>} />
+            <Route path="/dashboard/celulas" element={<RotaLivre><DashboardCelulas /></RotaLivre>} />
+            <Route path="/dashboard/cultos" element={<RotaLivre><DashboardCultos /></RotaLivre>} />
+            <Route path="/dashboard/escalas" element={<RotaLivre><DashboardEscalas /></RotaLivre>} />
+            <Route path="/dashboard/patrimonio" element={<RotaLivre><DashboardPatrimonio /></RotaLivre>} />
+            <Route path="/dashboard/veiculos" element={<RotaLivre><DashboardVeiculos /></RotaLivre>} />
+            <Route path="/dashboard/projetos" element={<RotaLivre><DashboardProjetos /></RotaLivre>} />
+            <Route path="/dashboard/documentos" element={<RotaLivre><DashboardDocumentos /></RotaLivre>} />
+            <Route path="/dashboard/biblioteca" element={<RotaLivre><DashboardBiblioteca /></RotaLivre>} />
+            <Route path="/dashboard/comunicacao" element={<RotaLivre><DashboardComunicacao /></RotaLivre>} />
+            <Route path="/dashboard/relatorios" element={<RotaLivre><DashboardRelatorios /></RotaLivre>} />
+            <Route path="/mapa-ministerial" element={<RotaLivre><MapaMinisterial /></RotaLivre>} />
+            <Route path="/congregacoes" element={<RotaLivre><Congregacoes /></RotaLivre>} />
+            <Route path="/membros" element={<RotaLivre><Membros /></RotaLivre>} />
+            <Route path="/obreiros" element={<RotaLivre><Obreiros /></RotaLivre>} />
+            <Route path="/patrimonio" element={<RotaLivre><Patrimonio /></RotaLivre>} />
+            <Route path="/carteirinhas" element={<RotaLivre><Carteirinhas /></RotaLivre>} />
+            <Route path="/batismos" element={<RotaLivre><Batismos /></RotaLivre>} />
+            <Route path="/agenda" element={<RotaLivre><Agenda /></RotaLivre>} />
+            <Route path="/perfil" element={<RotaLivre><Perfil /></RotaLivre>} />
+            <Route path="/admin/usuarios" element={<RotaLivre><Usuarios /></RotaLivre>} />
+            <Route path="/admin/configuracoes" element={<RotaLivre><Configuracoes /></RotaLivre>} />
+            <Route path="/admin/logs" element={<RotaLivre><Logs /></RotaLivre>} />
+            <Route path="/master/licenca" element={<RotaLivre><Licenca /></RotaLivre>} />
+            <Route path="/master/sistema" element={<RotaLivre><Sistema /></RotaLivre>} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </BrowserRouter>
