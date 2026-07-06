@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './app/providers/ThemeProvider';
 import QueryProvider from './app/providers/QueryProvider';
 import { useAuthStore } from './stores/auth';
-import Layout from './components/layout/Layout';
+import RootLayout from './components/layout/RootLayout';
 import Login from './pages/auth/Login';
 import Callback from './pages/auth/Callback';
 import ForgotPassword from './pages/auth/ForgotPassword';
@@ -32,7 +32,7 @@ function RotaProtegida({ children }) {
     </div>
   );
   if (!token && !usuario) return <Navigate to="/login" replace />;
-  return <Layout>{children}</Layout>;
+  return <RootLayout>{children}</RootLayout>;
 }
 
 function RotaAdmin({ children }) {
