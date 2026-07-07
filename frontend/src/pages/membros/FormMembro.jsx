@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
-import { useAuthStore } from '../../stores/auth';
 import { X, Upload, Shield } from 'lucide-react';
 
 const CAMPOS = [
@@ -22,7 +21,6 @@ const CAMPOS = [
 
 export default function FormMembro({ membro, onFechar }) {
   const qc = useQueryClient();
-  const { isAdmin } = useAuthStore();
   const [form, setForm] = useState({
     nome: '', cpf: '', rg: '', data_nascimento: '', telefone: '', whatsapp: '',
     endereco: '', estado_civil: '', data_conversao: '', data_batismo: '',
@@ -36,7 +34,6 @@ export default function FormMembro({ membro, onFechar }) {
   const { data: congregacoes } = useQuery({
     queryKey: ['congregacoes'],
     queryFn: () => api.get('/congregacoes').then(r => r.data),
-    enabled: isAdmin(),
   });
 
   const salvar = useMutation({
@@ -80,7 +77,7 @@ export default function FormMembro({ membro, onFechar }) {
             </label>
           </div>
 
-          {isAdmin() && congregacoes && (
+          {congregacoes && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Congregação *</label>
               <select value={form.congregacao_id} onChange={e => setForm(f => ({ ...f, congregacao_id: e.target.value }))}
