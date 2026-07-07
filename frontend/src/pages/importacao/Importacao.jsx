@@ -233,14 +233,14 @@ export default function Importacao() {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             {[
-              { label: 'Total', valor: preview.total, cor: 'blue' },
-              { label: 'Validos', valor: preview.validos, cor: 'green' },
-              { label: 'Problemas', valor: preview.com_problema, cor: 'red' },
-              { label: 'Duplicados', valor: preview.duplicados, cor: 'yellow' },
-            ].map(({ label, valor, cor }) => (
-              <div key={label} className={"rounded-xl p-4 text-center bg-" + cor + "-50 border border-" + cor + "-100"}>
-                <p className={"text-2xl font-bold text-" + cor + "-700"}>{valor}</p>
-                <p className={"text-xs text-" + cor + "-600"}>{label}</p>
+              { label: 'Total', valor: preview.total, classe: 'blue' },
+              { label: 'Validos', valor: preview.validos, classe: 'green' },
+              { label: 'Problemas', valor: preview.com_problema, classe: 'red' },
+              { label: 'Duplicados', valor: preview.duplicados, classe: 'yellow' },
+            ].map(({ label, valor, classe }) => (
+              <div key={label} className={`rounded-xl p-4 text-center ${classe === 'blue' ? 'bg-blue-50 border-blue-100' : classe === 'green' ? 'bg-green-50 border-green-100' : classe === 'red' ? 'bg-red-50 border-red-100' : 'bg-yellow-50 border-yellow-100'}`}>
+                <p className={`text-2xl font-bold ${classe === 'blue' ? 'text-blue-700' : classe === 'green' ? 'text-green-700' : classe === 'red' ? 'text-red-700' : 'text-yellow-700'}`}>{valor}</p>
+                <p className={`text-xs ${classe === 'blue' ? 'text-blue-600' : classe === 'green' ? 'text-green-600' : classe === 'red' ? 'text-red-600' : 'text-yellow-600'}`}>{label}</p>
               </div>
             ))}
           </div>

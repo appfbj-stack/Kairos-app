@@ -1,5 +1,5 @@
 // frontend/src/mocks/generators/cultos.js
-import { mulberry32, int, dateBetween, pick } from '../../lib/seed';
+import { mulberry32, int, dateBetween, pick, chance } from '../../lib/seed';
 
 const TEMAS = ['Esperança','Fé','Salvação','Amor','Restauração','Avivamento','Graça','Santidade','Comunhão','Missões','Família'];
 
@@ -16,10 +16,12 @@ export function gerarCultos(count = 1000, seed = 12345, congregacoesIds = [], pa
       congregacaoId: pick(congsIds, rng),
       pregador: pick(pregadores, rng),
       participantes,
+      publico: participantes,
       visitantes: int(0, Math.floor(participantes * 0.15), rng),
       decisoes: int(0, 20, rng),
       batismos: int(0, 5, rng),
       tema: pick(TEMAS, rng),
+      realizado: chance(0.85, rng),
     });
   }
   return list;

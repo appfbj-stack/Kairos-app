@@ -19,7 +19,7 @@ function FormPatrimonio({ item, onFechar }) {
       if (foto) fd.append('foto', foto);
       return item?.id ? api.put(`/patrimonio/${item.id}`, fd) : api.post('/patrimonio', fd);
     },
-    onSuccess: () => { qc.invalidateQueries(['patrimonio']); onFechar(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['patrimonio'] }); onFechar(); },
   });
 
   return (
@@ -84,7 +84,7 @@ export default function Patrimonio() {
 
   const deletar = useMutation({
     mutationFn: (id) => api.put(`/patrimonio/${id}/desativar`),
-    onSuccess: () => qc.invalidateQueries(['patrimonio']),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['patrimonio'] }),
   });
 
   const valorTotal = data.reduce((s, i) => s + (i.valor || 0), 0);

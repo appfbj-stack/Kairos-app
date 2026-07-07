@@ -23,7 +23,7 @@ function ModalBatizar({ onFechar }) {
 
   const batizar = useMutation({
     mutationFn: () => api.post('/batismos', { membro_id: membroId, data, local, pastor_id: pastorId || undefined }),
-    onSuccess: () => { qc.invalidateQueries(['batismos']); qc.invalidateQueries(['dashboard']); onFechar(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['batismos'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); onFechar(); },
   });
 
   return (
@@ -84,7 +84,7 @@ export default function Batismos() {
 
   const deletar = useMutation({
     mutationFn: (id) => api.delete(`/batismos/${id}`),
-    onSuccess: () => qc.invalidateQueries(['batismos']),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['batismos'] }),
   });
 
   return (

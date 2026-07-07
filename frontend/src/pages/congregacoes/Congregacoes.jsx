@@ -13,7 +13,7 @@ function FormCongregacao({ cong, onFechar }) {
 
   const salvar = useMutation({
     mutationFn: () => cong?.id ? api.put(`/congregacoes/${cong.id}`, form) : api.post('/congregacoes', form),
-    onSuccess: () => { qc.invalidateQueries(['congregacoes']); qc.invalidateQueries(['dashboard']); onFechar(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['congregacoes'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); onFechar(); },
   });
 
   const campo = (name, label, type = 'text') => (
@@ -72,7 +72,7 @@ export default function Congregacoes() {
 
   const deletar = useMutation({
     mutationFn: (id) => api.delete(`/congregacoes/${id}`),
-    onSuccess: () => qc.invalidateQueries(['congregacoes']),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['congregacoes'] }),
   });
 
   return (

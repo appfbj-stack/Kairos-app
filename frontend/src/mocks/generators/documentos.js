@@ -1,8 +1,8 @@
 // frontend/src/mocks/generators/documentos.js
-import { mulberry32, dateBetween, pick } from '../../lib/seed';
+import { mulberry32, dateBetween, pick, int } from '../../lib/seed';
 
-const TIPOS = ['ata','relatório','certificado','carta','ofício','regimento'];
-const TITULOS = ['Ata de Reunião','Relatório Mensal','Certificado de Batismo','Carta de Recomendação','Ofício','Regimento Interno'];
+const TIPOS = ['ata','relatorio','certificado','carta','oficio','regimento','contrato','ata','relatorio'];
+const TITULOS = ['Ata de Reunião','Relatório Mensal','Certificado de Batismo','Carta de Recomendação','Ofício','Regimento Interno','Contrato de Prestação'];
 
 export function gerarDocumentos(count = 300, seed = 55555, congregacoesIds = []) {
   const rng = mulberry32(seed);
@@ -15,7 +15,7 @@ export function gerarDocumentos(count = 300, seed = 55555, congregacoesIds = [])
       tipo: pick(TIPOS, rng),
       congregacaoId: pick(congsIds, rng),
       data: dateBetween(5, 0, rng).toISOString().slice(0, 10),
-      autor: `Pastor ${Math.floor(Math.random() * 80) + 1}`,
+      autor: `Pastor ${int(1, 80, rng)}`,
     });
   }
   return list;

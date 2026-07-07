@@ -9,13 +9,14 @@ export default function DashboardCultos() {
   const cultos = useMockData('cultos');
   const realizados = cultos.filter(c => c.realizado);
 
+  const ano = new Date().getFullYear();
   const porMes = [
-    { label: 'Jul', value: cultos.filter(c => c.data?.startsWith('2025-07')).length },
-    { label: 'Ago', value: cultos.filter(c => c.data?.startsWith('2025-08')).length },
-    { label: 'Set', value: cultos.filter(c => c.data?.startsWith('2025-09')).length },
-    { label: 'Out', value: cultos.filter(c => c.data?.startsWith('2025-10')).length },
-    { label: 'Nov', value: cultos.filter(c => c.data?.startsWith('2025-11')).length },
-    { label: 'Dez', value: cultos.filter(c => c.data?.startsWith('2025-12')).length },
+    { label: 'Jul', value: cultos.filter(c => c.data?.startsWith(`${ano}-07`)).length },
+    { label: 'Ago', value: cultos.filter(c => c.data?.startsWith(`${ano}-08`)).length },
+    { label: 'Set', value: cultos.filter(c => c.data?.startsWith(`${ano}-09`)).length },
+    { label: 'Out', value: cultos.filter(c => c.data?.startsWith(`${ano}-10`)).length },
+    { label: 'Nov', value: cultos.filter(c => c.data?.startsWith(`${ano}-11`)).length },
+    { label: 'Dez', value: cultos.filter(c => c.data?.startsWith(`${ano}-12`)).length },
   ];
 
   const columns = [

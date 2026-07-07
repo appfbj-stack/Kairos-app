@@ -29,7 +29,7 @@ export default function DashboardDepartamentos() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KpiCard label="Total Deptos" value={departamentos.length} icon={Layers} color="primary" />
         <KpiCard label="Ativos" value={ativos.length} icon={Activity} color="success" />
-        <KpiCard label="Total Membros" value={departamentos.reduce((s, d) => s + (d.membros || 0), 0)} icon={Users} color="info" />
+        <KpiCard label="Total Membros" value={departamentos.reduce((s, d) => s + (d.membrosCount || 0), 0)} icon={Users} color="info" />
         <KpiCard label="Média por Cong." value={departamentos.length ? Math.round(departamentos.length / 35) : 0} icon={Home} color="warning" />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

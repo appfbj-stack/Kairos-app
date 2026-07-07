@@ -18,7 +18,7 @@ function FormEvento({ onFechar }) {
 
   const salvar = useMutation({
     mutationFn: () => api.post('/agenda', form),
-    onSuccess: () => { qc.invalidateQueries(['agenda']); qc.invalidateQueries(['dashboard']); onFechar(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['agenda'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); onFechar(); },
   });
 
   return (
@@ -92,7 +92,7 @@ export default function Agenda() {
 
   const deletar = useMutation({
     mutationFn: (id) => api.delete(`/agenda/${id}`),
-    onSuccess: () => qc.invalidateQueries(['agenda']),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['agenda'] }),
   });
 
   const proximoMes = () => { if (mes === 11) { setMes(0); setAno(a => a + 1); } else setMes(m => m + 1); };

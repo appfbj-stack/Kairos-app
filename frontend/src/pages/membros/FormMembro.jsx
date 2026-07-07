@@ -48,7 +48,7 @@ export default function FormMembro({ membro, onFechar }) {
       if (membro?.id) return api.put(`/membros/${membro.id}`, fd);
       return api.post('/membros', fd);
     },
-    onSuccess: () => { qc.invalidateQueries(['membros']); qc.invalidateQueries(['dashboard']); onFechar(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['membros'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); onFechar(); },
   });
 
   const handleFoto = (e) => {

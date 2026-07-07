@@ -1,7 +1,7 @@
 // frontend/src/mocks/generators/eventos.js
 import { mulberry32, int, dateBetween, pick, chance } from '../../lib/seed';
 
-const TIPOS = ['culto','conferência','batismo','retiro','ensaio',' HttpStatusntaxit crossover','campanha','vigília'];
+const TIPOS = ['culto','conferência','batismo','retiro','ensaio','encontro','campanha','vigília'];
 const TITULOS = ['Culto de Celebração','Encontro de Casais','Conferência de Avivamento','Retiro Espiritual','Batismo nas Águas','Ensaio do Coral','Vigília de Oração','Cruzada Evangelística'];
 
 export function gerarEventos(count = 500, seed = 12345, congregacoesIds = []) {

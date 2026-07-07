@@ -22,7 +22,7 @@ export default function CardAjuda({ card, onVoltar }) {
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 my-2">
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-2xl">{card.emoji || 'ð'}</span>
+        <span className="text-2xl">{card.emoji || '\u{1F44B}'}</span>
         <h3 className="font-semibold text-blue-900 text-sm">{card.titulo}</h3>
       </div>
       <ol className="space-y-1 mb-4">
@@ -40,7 +40,7 @@ export default function CardAjuda({ card, onVoltar }) {
           <button
             key={i}
             onClick={i === 0 ? handleFazerAgora : onVoltar}
-            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${i === 0 ? 'bg-blue-600 text-white hover:bv-blue-700' : 'bg-white border border-blue-300 text-blue-700 hover:bg-blue-50'}`}
+            className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${i === 0 ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-white border border-blue-300 text-blue-700 hover:bg-blue-50'}`}
           >
             {botao}
           </button>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import api from '../../services/api';
 import { formatarData, calcularIdade, STATUS_MEMBRO } from '../../lib/utils';
 import { Plus, Search, ChevronLeft, ChevronRight, Edit, Trash2, User, Download, ShieldOff } from 'lucide-react';
@@ -16,12 +16,12 @@ export default function Membros() {
   const { data, isLoading } = useQuery({
     queryKey: ['membros', busca, status, page],
     queryFn: () => api.get('/membros', { params: { busca, status, page, limit: 20 } }).then(r => r.data),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
   });
 
   const deletar = useMutation({
     mutationFn: (id) => api.delete(`/membros/${id}`),
-    onSuccess: () => qc.invalidateQueries(['membros']),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['membros'] }),
   });
 
   const exportar = useMutation({
@@ -36,7 +36,7 @@ export default function Membros() {
 
   const anonimizar = useMutation({
     mutationFn: (id) => api.post(`/membros/${id}/anonimizar`),
-    onSuccess: () => { qc.invalidateQueries(['membros']); qc.invalidateQueries(['dashboard']); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['membros'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); },
   });
 
   const abrirEdicao = (membro) => { setMembroEditando(membro); setModalAberto(true); };

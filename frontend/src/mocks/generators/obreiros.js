@@ -1,7 +1,7 @@
 // frontend/src/mocks/generators/obreiros.js
-import { mulberry32, nomeBR, int, chance, pick } from '../../lib/seed';
+import { mulberry32, nomeBR, int, chance, pick, cidadeBR } from '../../lib/seed';
 
-const FUNCOES = ['Porteiro','Recepção','Som','Louvor',' infantil','Limpeza','Segurança','Diácono','Cooperador','Pedido de Oração'];
+const FUNCOES = ['lider','auxiliar','professor','lider','auxiliar','coordenador','auxiliar','lider','monitor','auxiliar'];
 const DEPT_IDS = ['D_HOMENS','D_MULHERES','D_JOVENS','D_LOUVOR','D_INTERCESSAO','D_EVANGELISMO','D_MISSOES','D_CRIANCAS','D_ADOLESCENTES','D_OUTROS'];
 
 export function gerarObreiros(count = 250, seed = 12345, congregacoesIds = []) {
@@ -18,6 +18,7 @@ export function gerarObreiros(count = 250, seed = 12345, congregacoesIds = []) {
       escalasCount: int(0, 25, rng),
       participacaoPercent: int(0, 100, rng),
       ativo: chance(0.85, rng),
+      cidade: cidadeBR(rng),
     });
   }
   return list;
