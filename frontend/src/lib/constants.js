@@ -14,7 +14,7 @@ export const MENU_GRUPOS = [
     items: [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, routeExists: true },
       { to: '/mapa-ministerial', label: 'Mapa Ministerial', icon: Map, routeExists: true },
-      { to: '/aniversariantes', label: 'Aniversariantes', icon: Cake, routeExists: false },
+      { to: '/dashboard/aniversariantes', label: 'Aniversariantes', icon: Cake },
     ],
   },
   {
