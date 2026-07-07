@@ -21,7 +21,7 @@ export const MENU_GRUPOS = [
     titulo: 'PESSOAS',
     items: [
       { to: '/membros', label: 'Membros', icon: Users, routeExists: true },
-      { to: '/congregacoes', label: 'Congregações', icon: Building2, somenteAdmin: true, routeExists: true },
+      { to: '/congregacoes', label: 'Congregações', icon: Building2, routeExists: true },
       { to: '/pastores', label: 'Pastores', icon: Crown, routeExists: true },
       { to: '/obreiros', label: 'Obreiros', icon: UserCheck, routeExists: true },
       { to: '/departamentos', label: 'Departamentos', icon: Layers, routeExists: true },
