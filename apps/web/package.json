@@ -45,6 +45,7 @@
     "@kairos/finance": "workspace:*",
     "@kairos/members": "workspace:*",
     "@kairos/services-ai": "workspace:*",
+    "@kairos/congregations": "workspace:*",
     "@kairos/ministries": "workspace:*",
     "@kairos/events": "workspace:*",
     "@kairos/prayer": "workspace:*",

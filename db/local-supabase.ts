@@ -9,7 +9,7 @@ const DB_VERSION = 1;
 const TABLES = [
   "churches", "users", "members", "cells", "events",
   "transactions", "prayer_requests", "sermons", "chat_rooms",
-  "messages", "ministries"
+  "messages", "ministries", "congregations"
 ];
 
 let dbPromise: Promise<IDBPDatabase | null> | null = null;
@@ -74,6 +74,10 @@ async function seedIfEmpty() {
   await tx.store.put({ id: "room-001", church_id: "church-001", name: "Geral", type: "general", created_at: new Date().toISOString(), created_by: "user-super" });
 
   await tx.store.put({ id: "msg-001", church_id: "church-001", room_id: "room-001", sender_id: "user-pastor", content: "Bom dia, igreja! Que Deus abençoe a semana de todos.", type: "text", created_at: new Date().toISOString(), created_by: "user-super" });
+
+  // Congregations seed
+  await tx.store.put({ id: "cong-001", church_id: "church-001", name: "Congregação Central", pastor_name: "Pr. João Silva", pastor_email: "pastor@novavida.com.br", pastor_phone: "11999990001", patrimonio: "Templo principal, 2 salas de EBD, equipamento de som e projeção", member_count: 120, address: "Av. Principal, 500 — Centro", status: "active", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: "user-super" });
+  await tx.store.put({ id: "cong-002", church_id: "church-001", name: "Congregação Jardim", pastor_name: "Pr. Carlos Mendes", pastor_email: "carlos@novavida.com.br", pastor_phone: "11999990005", patrimonio: "Salão alugado, equipamento básico de som", member_count: 45, address: "Rua das Flores, 250 — Jardim América", status: "active", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: "user-super" });
 
   await tx.done;
   console.log("[IndexedDB] Banco local seedado com sucesso.");
