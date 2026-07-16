@@ -39,6 +39,9 @@ importers:
       '@kairos/chat':
         specifier: workspace:*
         version: link:../../modules/chat
+      '@kairos/congregations':
+        specifier: workspace:*
+        version: link:../../modules/congregations
       '@kairos/events':
         specifier: workspace:*
         version: link:../../modules/events
@@ -176,6 +179,8 @@ importers:
   modules/cells: {}
 
   modules/chat: {}
+
+  modules/congregations: {}
 
   modules/events: {}
 
