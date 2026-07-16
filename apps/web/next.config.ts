@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  output: process.env.VERCEL ? "standalone" : undefined,
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   transpilePackages: [

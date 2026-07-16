@@ -1,8 +1,12 @@
 import { createServerClient as createSupabaseServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "@kairos/types";
+import { createLocalSupabase } from "../../../../../db/local-supabase";
 
 export async function createServerClient() {
+  if (process.env.NEXT_PUBLIC_SUPABASE_LOCAL === "true") {
+    return createLocalSupabase() as unknown as Awaited<ReturnType<typeof createSupabaseServerClient<Database>>>;
+  }
   const cookieStore = await cookies();
 
   return createSupabaseServerClient<Database>(
@@ -24,6 +28,9 @@ export async function createServerClient() {
 }
 
 export async function createServiceClient() {
+  if (process.env.NEXT_PUBLIC_SUPABASE_LOCAL === "true") {
+    return createLocalSupabase() as unknown as Awaited<ReturnType<typeof createSupabaseServerClient<Database>>>;
+  }
   const cookieStore = await cookies();
 
   return createSupabaseServerClient<Database>(
