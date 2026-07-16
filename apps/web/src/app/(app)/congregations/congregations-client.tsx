@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Building2, User, Phone, Mail, MapPin, MoreVertical } from "lucide-react";
+import { Plus, Search, Building, User, Phone, Mail, MapPin, MoreVertical } from "lucide-react";
 import Link from "next/link";
 import type { Congregation } from "@kairos/congregations";
 
@@ -47,7 +47,7 @@ export function CongregationsClient({ congregations: initial }: { congregations:
 
       {filtered.length === 0 ? (
         <div className="text-center py-20">
-          <Building2 className="w-12 h-12 mx-auto text-muted-foreground/40 mb-4" />
+          <Building className="w-12 h-12 mx-auto text-muted-foreground/40 mb-4" />
           <h3 className="text-lg font-medium text-muted-foreground">
             {congregations.length === 0 ? "Nenhuma congregação cadastrada" : "Nenhum resultado"}
           </h3>
@@ -62,7 +62,7 @@ export function CongregationsClient({ congregations: initial }: { congregations:
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-primary" />
+                  <Building className="w-5 h-5 text-primary" />
                   <h3 className="font-semibold">{c.name}</h3>
                 </div>
                 <span className={`px-2 py-0.5 rounded-full text-xs ${c.status === "active" ? "bg-green-500/20 text-green-600" : "bg-gray-500/20 text-gray-500"}`}>
