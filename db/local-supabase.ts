@@ -4,7 +4,7 @@ const isBrowser = typeof window !== "undefined" && typeof indexedDB !== "undefin
 import type { IDBPDatabase } from "idb";
 
 const DB_NAME = "kairos-local";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const TABLES = [
   "churches", "users", "members", "cells", "events",
