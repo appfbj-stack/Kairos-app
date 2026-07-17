@@ -1,15 +1,26 @@
-import { createServerClient } from "@/lib/supabase/server";
+"use client";
+
+import { useEffect, useState } from "react";
 import { CongregationsClient } from "./congregations-client";
 
-export const metadata = { title: "Congregações — Kairos" };
+export default function CongregationsPage() {
+  const [congregations, setCongregations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export default async function CongregationsPage() {
-  const supabase = await createServerClient();
+  useEffect(() => {
+    fetch("/api/congregations")
+      .then((r) => r.json())
+      .then((d) => setCongregations(d.data || []))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const { data: congregations } = await supabase
-    .from("congregations")
-    .select("*")
-    .order("name");
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
 
-  return <CongregationsClient congregations={congregations ?? []} />;
+  return <CongregationsClient congregations={congregations} />;
 }

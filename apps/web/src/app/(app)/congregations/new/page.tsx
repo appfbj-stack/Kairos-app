@@ -19,47 +19,35 @@ export default function NewCongregationPage() {
 
   const onSubmit = async (data: CreateCongregationForm) => {
     setLoading(true);
-    const supabase = createBrowserClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error("Você precisa estar logado.");
+    try {
+      const res = await fetch("/api/congregations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.name,
+          pastorName: data.pastorName,
+          pastorEmail: data.pastorEmail || null,
+          pastorPhone: data.pastorPhone || null,
+          patrimonio: data.patrimonio || null,
+          address: data.address || null,
+        }),
+      });
+
+      const result = await res.json();
+      if (result.error) {
+        toast.error(result.error.message || "Erro ao salvar");
+        setLoading(false);
+        return;
+      }
+
+      toast.success("Congregação criada!");
+      router.push("/congregations");
+      router.refresh();
+    } catch {
+      toast.error("Erro ao salvar");
       setLoading(false);
-      return;
     }
-
-    const { data: profile } = await supabase.from("users").select("church_id").eq("id", user.id).single();
-    if (!profile?.church_id) {
-      toast.error("Perfil não encontrado. Recarregue a página e tente novamente.");
-      setLoading(false);
-      return;
-    }
-
-    const id = crypto.randomUUID();
-    const { error } = await supabase.from("congregations").insert({
-      id,
-      church_id: profile.church_id,
-      name: data.name,
-      pastor_name: data.pastorName,
-      pastor_email: data.pastorEmail || null,
-      pastor_phone: data.pastorPhone || null,
-      patrimonio: data.patrimonio || null,
-      member_count: 0,
-      address: data.address || null,
-      status: "active",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      created_by: user.id,
-    });
-
-    if (error) {
-      toast.error(error.message);
-      setLoading(false);
-      return;
-    }
-
-    toast.success("Congregação criada!");
-    router.push("/congregations");
   };
 
   return (
