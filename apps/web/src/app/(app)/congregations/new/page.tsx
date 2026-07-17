@@ -21,10 +21,24 @@ export default function NewCongregationPage() {
     setLoading(true);
     const supabase = createBrowserClient();
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("Você precisa estar logado.");
+      setLoading(false);
+      return;
+    }
+
+    const { data: profile } = await supabase.from("users").select("church_id").eq("id", user.id).single();
+    if (!profile?.church_id) {
+      toast.error("Perfil não encontrado. Recarregue a página e tente novamente.");
+      setLoading(false);
+      return;
+    }
+
     const id = crypto.randomUUID();
     const { error } = await supabase.from("congregations").insert({
       id,
-      church_id: "00000000-0000-0000-0000-000000000001",
+      church_id: profile.church_id,
       name: data.name,
       pastor_name: data.pastorName,
       pastor_email: data.pastorEmail || null,
@@ -35,7 +49,7 @@ export default function NewCongregationPage() {
       status: "active",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      created_by: "user-super",
+      created_by: user.id,
     });
 
     if (error) {
