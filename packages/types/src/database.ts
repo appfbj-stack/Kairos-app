@@ -47,12 +47,51 @@ export interface Database {
           baptism_date: string | null;
           status: "active" | "inactive" | "visitor";
           cell_id: string | null;
+          congregation_id: string | null;
+          cpf: string | null;
+          address: string | null;
+          affiliation_date: string | null;
+          education: string | null;
+          profession: string | null;
+          parents_name: string | null;
+          children_names: string | null;
+          has_membership_card: boolean;
+          membership_card_issued_at: string | null;
           created_at: string;
           updated_at: string;
           created_by: string;
         };
         Insert: Omit<Database["public"]["Tables"]["members"]["Row"], "id" | "created_at" | "updated_at">;
         Update: Partial<Database["public"]["Tables"]["members"]["Insert"]>;
+      };
+      member_imports: {
+        Row: {
+          id: string;
+          church_id: string;
+          congregation_id: string | null;
+          imported_by: string | null;
+          file_name: string;
+          total_rows: number;
+          success_count: number;
+          error_count: number;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["member_imports"]["Row"], "id" | "created_at" | "updated_at">;
+        Update: Partial<Database["public"]["Tables"]["member_imports"]["Insert"]>;
+      };
+      member_import_errors: {
+        Row: {
+          id: string;
+          import_id: string;
+          row_number: number;
+          raw_data: Json | null;
+          error_message: string;
+          created_at: string;
+        };
+        Insert: Omit<Database["public"]["Tables"]["member_import_errors"]["Row"], "id" | "created_at">;
+        Update: Partial<Database["public"]["Tables"]["member_import_errors"]["Insert"]>;
       };
       cells: {
         Row: {

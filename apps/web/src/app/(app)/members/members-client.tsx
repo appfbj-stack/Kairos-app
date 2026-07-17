@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Users, Plus, Search } from "lucide-react";
+import { Users, Plus, Search, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Database } from "@kairos/types";
@@ -33,15 +33,21 @@ export function MembersClient({ members }: { members: Member[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold">Membros</h1>
           <p className="text-muted-foreground text-sm">{members.length} membros cadastrados</p>
         </div>
-        <Link href="/members/new" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
-          <Plus className="w-4 h-4" />
-          Novo Membro
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/members/import" className="flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-medium hover:bg-muted transition-colors">
+            <Upload className="w-4 h-4" />
+            Importar
+          </Link>
+          <Link href="/members/new" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:opacity-90 transition-opacity">
+            <Plus className="w-4 h-4" />
+            Novo Membro
+          </Link>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 px-3 py-2 border rounded-lg bg-card max-w-sm">
