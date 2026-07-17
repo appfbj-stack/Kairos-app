@@ -24,10 +24,15 @@ async function getDB() {
         if (!db.objectStoreNames.contains(table)) {
           const store = db.createObjectStore(table, { keyPath: "id" });
           if (table !== "churches") {
-            // Indoices por church_id
             try { store.createIndex("church_id", "church_id"); } catch {}
           }
         }
+      }
+      // Seed new tables if they were just created
+      if (db.objectStoreNames.contains("congregations")) {
+        // Check if already seeded
+        const tx = (db as any).transaction;
+        // Will be seeded below in seedIfEmpty
       }
     },
   });
@@ -84,6 +89,21 @@ async function seedIfEmpty() {
 }
 
 seedIfEmpty();
+
+// Seed congregations if table was just created (DB version bump)
+async function seedCongregations() {
+  const db = await getDB();
+  if (!db) return;
+  const count = await db.count("congregations");
+  if (count > 0) return;
+  const tx = db.transaction("congregations", "readwrite");
+  await tx.store.put({ id: "cong-001", church_id: "church-001", name: "Congregação Central", pastor_name: "Pr. João Silva", pastor_email: "pastor@novavida.com.br", pastor_phone: "11999990001", patrimonio: "Templo principal, 2 salas de EBD, equipamento de som e projeção, 1 veículo", member_count: 120, address: "Av. Principal, 500 — Centro", status: "active", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: "user-super" });
+  await tx.store.put({ id: "cong-002", church_id: "church-001", name: "Congregação Jardim", pastor_name: "Pr. Carlos Mendes", pastor_email: "carlos@novavida.com.br", pastor_phone: "11999990005", patrimonio: "Salão alugado, equipamento básico de som, 10 cadeiras", member_count: 45, address: "Rua das Flores, 250 — Jardim América", status: "active", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: "user-super" });
+  await tx.store.put({ id: "cong-003", church_id: "church-001", name: "Congregação Horizonte", pastor_name: "Pr. Pedro Oliveira", pastor_email: "pedro@novavida.com.br", pastor_phone: "11999990003", patrimonio: "Terreno próprio, templo em construção, tenda provisória", member_count: 35, address: "Estrada do Sol, km 5 — Horizonte Azul", status: "active", created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: "user-super" });
+  await tx.done;
+  console.log("[IndexedDB] Congregações seedadas.");
+}
+seedCongregations();
 
 // Mock data for server-side rendering
 const MOCK_CHURCH = { id: "church-001", name: "Ministério Nova Vida", slug: "nova-vida", plan: "pro", active_modules: '["members","cells","events","finance","ministries","prayer","sermons","chat"]', custom_domain: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), created_by: "system" };
