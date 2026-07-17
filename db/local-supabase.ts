@@ -200,30 +200,20 @@ export function createLocalSupabase() {
       };
     },
     insert(values: any) {
+      const promise = (async () => {
+        try {
+          const db = await getDB();
+          if (!db) return { data: [], error: new Error("DB not available") };
+          const rows = Array.isArray(values) ? values : [values];
+          for (const row of rows) await db.put(table, row);
+          return { data: rows, error: null };
+        } catch (e) { return { data: null, error: e as Error }; }
+      })();
       return {
-        select() { return Promise.resolve({ data: Array.isArray(values) ? values : [values], error: null }); },
-        single() {
-          return {
-            then: async (resolve: any) => {
-              try {
-                const db = await getDB();
-                if (!db) return resolve({ data: null, error: null });
-                const row = Array.isArray(values) ? values[0] : values;
-                await db.put(table, row);
-                resolve({ data: row, error: null });
-              } catch (e) { resolve({ data: null, error: e }); }
-            },
-          };
-        },
-        then: async (resolve: any) => {
-          try {
-            const db = await getDB();
-            if (!db) return resolve({ data: [], error: null });
-            const rows = Array.isArray(values) ? values : [values];
-            for (const row of rows) await db.put(table, row);
-            resolve({ data: rows, error: null });
-          } catch (e) { resolve({ data: [], error: e }); }
-        },
+        then: (onFulfilled: any, onRejected?: any) => promise.then(onFulfilled, onRejected),
+        catch: (onRejected: any) => promise.catch(onRejected),
+        select() { return promise; },
+        single() { return promise; },
       };
     },
     update(values: any) {
