@@ -1,6 +1,29 @@
 # PROGRESS.md — Kairos Sede Sorocaba
 
-> Última atualização: 2026-07-06
+> Última atualização: 2026-07-24
+
+## Testes de Importação — OK
+
+| Etapa | Resultado |
+|-------|-----------|
+| `POST /api/importacao/analisar` | ✅ 7 linhas lidas, IA mapeou corretamente |
+| `POST /api/importacao/preview` | ✅ 6 válidos, 1 problema (nome vazio), 0 duplicados |
+| `POST /api/importacao/executar` | ✅ 6 membros importados |
+| `GET /api/membros` | ✅ 6 membros na congregação |
+| `GET /api/importacao/historico` | ✅ log com status=concluido |
+| `POST /api/importacao/desfazer/{id}` | ✅ 6 removidos, GET /membros = 0 |
+
+### Ajustes no banco (migração manual)
+
+A tabela `membros` não tinha coluna `importacao_id` (modelo SQLAlchemy esperava). Adicionado via ALTER TABLE.
+
+Colunas faltantes em `importacoes_log`: `processados`, `storage_path`. Adicionadas via ALTER TABLE.
+
+### Observações
+
+- `CAMPOS_KAIROS` em `importacao.py` **não** inclui `"sexo"` — IA mapeia como `null`. Se quiser mapear sexo, adicionar ao dict.
+- `parse_date` em `utils.py` já trata `dd/mm/YYYY`, `YYYY-mm-dd`, etc. ✅
+- Sessão de importação (`_sessoes`) é em memória — perdida ao reiniciar servidor.
 
 ## Visão Geral
 
