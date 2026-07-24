@@ -29,10 +29,12 @@ import MapaMinisterial from './pages/MapaMinisterial';
 import Perfil from './pages/perfil/Perfil';
 import Usuarios from './pages/admin/Usuarios';
 import Configuracoes from './pages/admin/Configuracoes';
+import AssistenteConfig from './pages/admin/AssistenteConfig';
 import Logs from './pages/admin/Logs';
 import Licenca from './pages/master/Licenca';
 import Sistema from './pages/master/Sistema';
 import Congregacoes from './pages/congregacoes/Congregacoes';
+import CongregacaoDetalhes from './pages/congregacoes/CongregacaoDetalhes';
 import Membros from './pages/membros/Membros';
 import Obreiros from './pages/obreiros/Obreiros';
 import Patrimonio from './pages/patrimonio/Patrimonio';
@@ -88,6 +90,7 @@ export default function App() {
             <Route path="/dashboard/relatorios" element={<RotaLivre><DashboardRelatorios /></RotaLivre>} />
             <Route path="/mapa-ministerial" element={<RotaLivre><MapaMinisterial /></RotaLivre>} />
             <Route path="/congregacoes" element={<RotaLivre><Congregacoes /></RotaLivre>} />
+            <Route path="/congregacoes/:id" element={<RotaLivre><CongregacaoDetalhes /></RotaLivre>} />
             <Route path="/membros" element={<RotaLivre><Membros /></RotaLivre>} />
             <Route path="/obreiros" element={<RotaLivre><Obreiros /></RotaLivre>} />
             <Route path="/patrimonio" element={<RotaLivre><Patrimonio /></RotaLivre>} />
@@ -97,6 +100,7 @@ export default function App() {
             <Route path="/perfil" element={<RotaLivre><Perfil /></RotaLivre>} />
             <Route path="/admin/usuarios" element={<RotaLivre><Usuarios /></RotaLivre>} />
             <Route path="/admin/configuracoes" element={<RotaLivre><Configuracoes /></RotaLivre>} />
+            <Route path="/admin/assistente" element={<RotaLivre><AssistenteConfig /></RotaLivre>} />
             <Route path="/admin/logs" element={<RotaLivre><Logs /></RotaLivre>} />
             <Route path="/master/licenca" element={<RotaLivre><Licenca /></RotaLivre>} />
             <Route path="/master/sistema" element={<RotaLivre><Sistema /></RotaLivre>} />

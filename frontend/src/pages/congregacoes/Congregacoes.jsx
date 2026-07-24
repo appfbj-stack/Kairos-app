@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import api from '../../services/api';
-import { Building2, Plus, Edit, Trash2, Phone, Mail, MapPin } from 'lucide-react';
+import { Building2, Plus, Edit, Trash2, Phone, Mail, MapPin, Users, Search, ExternalLink } from 'lucide-react';
 
 function FormCongregacao({ cong, onFechar }) {
   const qc = useQueryClient();
@@ -63,6 +64,7 @@ function FormCongregacao({ cong, onFechar }) {
 
 export default function Congregacoes() {
   const [modal, setModal] = useState(null);
+  const [busca, setBusca] = useState('');
   const qc = useQueryClient();
 
   const { data = [], isLoading } = useQuery({
@@ -72,8 +74,18 @@ export default function Congregacoes() {
 
   const deletar = useMutation({
     mutationFn: (id) => api.delete(`/congregacoes/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['congregacoes'] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['congregacoes'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); },
   });
+
+  const filtrados = useMemo(() => {
+    if (!busca) return data;
+    const q = busca.toLowerCase();
+    return data.filter(c =>
+      c.nome.toLowerCase().includes(q) ||
+      (c.cidade || '').toLowerCase().includes(q) ||
+      (c.pastor_email || '').toLowerCase().includes(q)
+    );
+  }, [data, busca]);
 
   return (
     <div className="space-y-4">
@@ -87,14 +99,26 @@ export default function Congregacoes() {
         </button>
       </div>
 
+      {data.length > 0 && (
+        <div className="relative max-w-xs">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input type="text" placeholder="Buscar congregações..." value={busca}
+            onChange={e => setBusca(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm outline-none focus:border-blue-500" />
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex items-center justify-center h-48"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
-      ) : data.length === 0 ? (
-        <div className="text-center py-16 text-gray-400"><Building2 size={48} className="mx-auto mb-2 opacity-30" /><p>Nenhuma congregação cadastrada</p></div>
+      ) : filtrados.length === 0 ? (
+        <div className="text-center py-16 text-gray-400">
+          <Building2 size={48} className="mx-auto mb-2 opacity-30" />
+          <p>{busca ? 'Nenhuma congregação encontrada' : 'Nenhuma congregação cadastrada'}</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {data.map(c => (
-            <div key={c.id} className="bg-white rounded-xl border p-4 hover:shadow-md transition-shadow">
+          {filtrados.map(c => (
+            <div key={c.id} className="bg-white rounded-xl border p-4 hover:shadow-md transition-shadow flex flex-col">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
@@ -108,15 +132,22 @@ export default function Congregacoes() {
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => setModal(c)} className="p-1.5 text-gray-400 hover:text-blue-600 rounded"><Edit size={15} /></button>
-                  <button onClick={() => { if (confirm('Remover congregação?')) deletar.mutate(c.id); }} className="p-1.5 text-gray-400 hover:text-red-600 rounded"><Trash2 size={15} /></button>
+                  <button onClick={() => setModal(c)} className="p-1.5 text-gray-400 hover:text-blue-600 rounded" title="Editar"><Edit size={15} /></button>
+                  <button onClick={() => { if (confirm('Remover congregação?')) deletar.mutate(c.id); }} className="p-1.5 text-gray-400 hover:text-red-600 rounded" title="Excluir"><Trash2 size={15} /></button>
                 </div>
               </div>
-              <div className="space-y-1.5 text-sm text-gray-500">
+              <div className="space-y-1.5 text-sm text-gray-500 flex-1">
                 {c.cidade && <div className="flex items-center gap-2"><MapPin size={13} /> {c.cidade}{c.estado ? `, ${c.estado}` : ''}</div>}
                 {c.telefone && <div className="flex items-center gap-2"><Phone size={13} /> {c.telefone}</div>}
                 {c.pastor_email && <div className="flex items-center gap-2"><Mail size={13} /> {c.pastor_email}</div>}
+                <div className="flex items-center gap-2 font-medium text-gray-700">
+                  <Users size={13} /> {c.total_membros ?? 0} membros
+                </div>
               </div>
+              <Link to={`/congregacoes/${c.id}`}
+                className="mt-3 flex items-center justify-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium border-t pt-3">
+                Ver detalhes <ExternalLink size={14} />
+              </Link>
             </div>
           ))}
         </div>

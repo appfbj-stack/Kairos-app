@@ -5,6 +5,7 @@ from typing import Optional
 from app.core.database import get_db
 from app.deps import get_current_user
 from app.models import Usuario
+from app.services.conhecimento import buscar_resposta
 from app.services.assistente import (
     montar_system_prompt,
     chamar_llm,
@@ -33,6 +34,21 @@ async def chat(
     db: Session = Depends(get_db),
     cu: Usuario = Depends(get_current_user),
 ):
+    conhecimento = buscar_resposta(payload.mensagem, db, cu)
+    if conhecimento:
+        return {
+            "resposta": conhecimento["resposta"],
+            "acao": None,
+            "card_ajuda": None,
+            "aguardando_confirmacao": False,
+            "fonte_conhecimento": {
+                "titulo": conhecimento["titulo"],
+                "categoria": conhecimento["categoria"],
+                "video_url": conhecimento.get("video_url"),
+                "imagem_url": conhecimento.get("imagem_url"),
+            },
+        }
+
     system_prompt = montar_system_prompt(cu, db, payload.tela_atual)
     historico = payload.historico[-20:]
     mensagens = [{"role": "system", "content": system_prompt}]
@@ -42,7 +58,7 @@ async def chat(
         resposta = await chamar_llm(mensagens)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Erro ao contatar IA: {str(e)}")
-    return resposta
+    return {**resposta, "fonte_conhecimento": None}
 
 
 @router.post("/executar")

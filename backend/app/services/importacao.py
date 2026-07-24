@@ -1,14 +1,23 @@
 import io
 import json
+import os
 import re
+import csv
+import chardet
+import threading
+import traceback
 import httpx
+import pandas as pd
 from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from app.core.config import settings
+from app.core.database import SessionLocal
 from app.models import Congregacao, ImportacaoLog, Membro
 from app.utils import new_id, parse_date
 
+BATCH_SIZE = 500
 CAMPOS_KAIROS = {
     "nome": ["nome", "nome completo", "name", "membro", "pessoa"],
     "cpf": ["cpf", "documento", "doc"],
@@ -27,13 +36,11 @@ CAMPOS_KAIROS = {
     "email": ["email", "e-mail"],
 }
 
-
 def normalizar(texto: str) -> str:
     import unicodedata
     texto = str(texto).lower().strip()
     texto = unicodedata.normalize("NFKD", texto)
     return "".join(c for c in texto if not unicodedata.combining(c))
-
 
 def mapear_campos_local(colunas: list) -> dict:
     mapeamento = {}
@@ -50,7 +57,6 @@ def mapear_campos_local(colunas: list) -> dict:
         mapeamento[col] = melhor
     return mapeamento
 
-
 async def mapear_campos_ia(colunas: list, amostra: list) -> dict:
     if not settings.OPENROUTER_API_KEY:
         return mapear_campos_local(colunas)
@@ -60,7 +66,7 @@ Mapeie cada coluna para o campo do Kairos ou null se nao corresponder.
 Campos do Kairos: {campos_disponiveis}
 Colunas: {colunas}
 Amostra: {json.dumps(amostra[:2], ensure_ascii=False, default=str)}
-Retorne APENAS JSON: {{"coluna": "campo_kairos_ou_null""}}"""
+Retorne APENAS JSON: {{"coluna": "campo_kairos_ou_null"}}"""
     try:
         async with httpx.AsyncClient(timeout=20) as client:
             resp = await client.post(
@@ -84,9 +90,7 @@ Retorne APENAS JSON: {{"coluna": "campo_kairos_ou_null""}}"""
     except Exception:
         return mapear_campos_local(colunas)
 
-
 def ler_csv(conteudo: bytes) -> tuple:
-    import csv, chardet
     encoding = chardet.detect(conteudo)["encoding"] or "utf-8"
     texto = conteudo.decode(encoding, errors="replace")
     reader = csv.DictReader(io.StringIO(texto))
@@ -94,12 +98,9 @@ def ler_csv(conteudo: bytes) -> tuple:
     linhas = [dict(row) for row in reader]
     return colunas, linhas
 
-
 def ler_excel(conteudo: bytes) -> tuple:
-    import pandas as pd
     df = pd.read_excel(io.BytesIO(conteudo), dtype=str).fillna("")
     return list(df.columns), df.to_dict(orient="records")
-
 
 def ler_pdf(conteudo: bytes) -> tuple:
     import pdfplumber
@@ -117,7 +118,6 @@ def ler_pdf(conteudo: bytes) -> tuple:
                         linhas_todas.append(row)
     return colunas, linhas_todas
 
-
 def detectar_formato(nome_arquivo: str, content_type: str = "") -> str:
     ext = nome_arquivo.lower().split(".")[-1]
     if ext in ("xlsx", "xls"):
@@ -131,7 +131,6 @@ def detectar_formato(nome_arquivo: str, content_type: str = "") -> str:
     if "pdf" in content_type:
         return "pdf"
     return "csv"
-
 
 def detectar_duplicado(dados: dict, tenant_id: int, db: Session) -> Optional[Membro]:
     cpf = dados.get("cpf", "").strip()
@@ -162,8 +161,7 @@ def detectar_duplicado(dados: dict, tenant_id: int, db: Session) -> Optional[Mem
                 return m
     return None
 
-
-def linha_para_membro(linha: dict, mapeamento: dict, congregacao_id: str, tenant_id: int) -> tuple:
+def linha_para_membro(linha: dict, mapeamento: dict, congregacao_id: str, tenant_id: int, importacao_id: str) -> tuple:
     dados = {}
     erros = []
     campo_inv = {v: k for k, v in mapeamento.items() if v}
@@ -184,15 +182,24 @@ def linha_para_membro(linha: dict, mapeamento: dict, congregacao_id: str, tenant
                 del dados[campo_data]
     dados["congregacao_id"] = congregacao_id
     dados["tenant_id"] = tenant_id
+    dados["importacao_id"] = importacao_id
     status = dados.get("status","ativo").lower()
     dados["status"] = status if status in ("ativo","inativo","transferido","falecido") else "ativo"
     return dados, erros
 
+def salvar_linhas_em_arquivo(linhas: list, caminho: str):
+    os.makedirs(os.path.dirname(caminho), exist_ok=True)
+    with open(caminho, "w", encoding="utf-8") as f:
+        json.dump(linhas, f, ensure_ascii=False, default=str)
+
+def ler_linhas_do_arquivo(caminho: str) -> list:
+    with open(caminho, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 def validar_preview(linhas: list, mapeamento: dict, congregacao_id: str, tenant_id: int, db: Session) -> dict:
     validos, com_problema, duplicados_encontrados = [], [], []
     for i, linha in enumerate(linhas):
-        dados, erros = linha_para_membro(linha, mapeamento, congregacao_id, tenant_id)
+        dados, erros = linha_para_membro(linha, mapeamento, congregacao_id, tenant_id, "")
         dup = detectar_duplicado(dados, tenant_id, db)
         if erros:
             com_problema.append({"linha": i+2, "dados": {k:str(v) for k,v in dados.items()}, "erros": erros})
@@ -202,14 +209,106 @@ def validar_preview(linhas: list, mapeamento: dict, congregacao_id: str, tenant_
             validos.append({"linha": i+2, "dados": {k:str(v) for k,v in dados.items()}})
     return {"total":len(linhas),"validos":len(validos),"com_problema":len(com_problema),"duplicados":len(duplicados_encontrados),"preview_validos":validos[:20],"preview_problemas":com_problema[:20],"preview_duplicados":duplicados_encontrados[:20]}
 
+def processar_em_segundo_plano(importacao_id: str, storage_path: str, mapeamento: dict, congregacao_id: str, tenant_id: int, decisoes_duplicados: dict):
+    db = SessionLocal()
+    try:
+        log = db.query(ImportacaoLog).filter(ImportacaoLog.id == importacao_id).first()
+        if not log:
+            return
+        log.status = "processando"
+        db.commit()
 
-def executar_importacao(linhas:list, mapeamento:dict, congregacao_id:str, tenant_id:int, usuario_id:str, nome_arquivo:str, formato:str, decisoes_duplicados:dict, db:Session) -> dict:
+        linhas = ler_linhas_do_arquivo(storage_path)
+        total = len(linhas)
+        log.total_linhas = total
+        db.commit()
+
+        importados, duplicados, erros, ids_importados = 0, 0, [], []
+        batch_membros = []
+
+        for i, linha in enumerate(linhas):
+            try:
+                dados, erros_linha = linha_para_membro(linha, mapeamento, congregacao_id, tenant_id, importacao_id)
+                if erros_linha:
+                    erros.append({"linha": i+2, "motivo": "; ".join(erros_linha)})
+                    log.processados = i + 1
+                    log.com_erro = len(erros)
+                    log.erros = erros[-50:]
+                    continue
+                dup = detectar_duplicado(dados, tenant_id, db)
+                decisao = decisoes_duplicados.get(str(i), "ignorar") if dup else None
+                if dup and decisao == "ignorar":
+                    duplicados += 1
+                    log.processados = i + 1
+                    log.duplicados = duplicados
+                    continue
+                if dup and decisao == "atualizar":
+                    for campo, valor in dados.items():
+                        if campo not in ("id","tenant_id","criado_em","importacao_id") and valor:
+                            setattr(dup, campo, valor)
+                    ids_importados.append(dup.id)
+                    importados += 1
+                else:
+                    dados["id"] = new_id()
+                    dados["criado_em"] = datetime.now(timezone.utc)
+                    batch_membros.append(dados)
+                    ids_importados.append(dados["id"])
+                    importados += 1
+
+                log.processados = i + 1
+                log.importados = importados
+                log.duplicados = duplicados
+                log.com_erro = len(erros)
+                log.erros = erros[-50:]
+
+                if len(batch_membros) >= BATCH_SIZE:
+                    db.bulk_insert_mappings(Membro, batch_membros)
+                    db.commit()
+                    batch_membros = []
+
+            except Exception as e:
+                erros.append({"linha": i+2, "motivo": str(e)})
+                log.com_erro = len(erros)
+                log.erros = erros[-50:]
+
+            if (i + 1) % 100 == 0:
+                db.commit()
+
+        if batch_membros:
+            db.bulk_insert_mappings(Membro, batch_membros)
+
+        log.status = "concluido"
+        log.importados = importados
+        log.duplicados = duplicados
+        log.com_erro = len(erros)
+        log.erros = erros[-50:]
+        log.ids_importados = ids_importados
+        log.concluido_em = datetime.now(timezone.utc)
+        db.commit()
+
+        if storage_path and os.path.exists(storage_path):
+            try:
+                os.remove(storage_path)
+            except OSError:
+                pass
+
+    except Exception:
+        try:
+            log.status = "erro"
+            log.erros = [{"motivo": traceback.format_exc()}]
+            db.commit()
+        except Exception:
+            pass
+    finally:
+        db.close()
+
+def executar_importacao(linhas: list, mapeamento: dict, congregacao_id: str, tenant_id: int, usuario_id: str, nome_arquivo: str, formato: str, decisoes_duplicados: dict, db: Session) -> dict:
     importados, duplicados, erros, ids_importados = 0, 0, [], []
     log = ImportacaoLog(id=new_id(), tenant_id=tenant_id, usuario_id=usuario_id, nome_arquivo=nome_arquivo, formato=formato, status="processando", total_linhas=len(linhas), mapeamento=mapeamento)
     db.add(log); db.flush()
     for i, linha in enumerate(linhas):
         try:
-            dados, erros_linha = linha_para_membro(linha, mapeamento, congregacao_id, tenant_id)
+            dados, erros_linha = linha_para_membro(linha, mapeamento, congregacao_id, tenant_id, log.id)
             if erros_linha:
                 erros.append({"linha":i+2,"motivo":"; ".join(erros_linha)}); continue
             dup = detectar_duplicado(dados, tenant_id, db)
@@ -218,7 +317,7 @@ def executar_importacao(linhas:list, mapeamento:dict, congregacao_id:str, tenant
                 duplicados += 1; continue
             if dup and decisao == "atualizar":
                 for campo, valor in dados.items():
-                    if campo not in ("id","tenant_id","criado_em") and valor:
+                    if campo not in ("id","tenant_id","criado_em","importacao_id") and valor:
                         setattr(dup, campo, valor)
                 ids_importados.append(dup.id); importados += 1
             else:
@@ -231,3 +330,14 @@ def executar_importacao(linhas:list, mapeamento:dict, congregacao_id:str, tenant
     log.concluido_em=datetime.now(timezone.utc)
     db.commit()
     return {"importacao_id":log.id,"total":len(linhas),"importados":importados,"duplicados":duplicados,"com_erro":len(erros),"erros":erros[:50],"mensagem":f"Importacao concluida: {importados} membros importados."}
+
+def desfazer_por_importacao(importacao_id: str, db: Session) -> dict:
+    membros = db.query(Membro).filter(Membro.importacao_id == importacao_id).all()
+    qtd = len(membros)
+    for m in membros:
+        db.delete(m)
+    log = db.query(ImportacaoLog).filter(ImportacaoLog.id == importacao_id).first()
+    if log:
+        log.pode_desfazer = False
+    db.commit()
+    return {"removidos": qtd}

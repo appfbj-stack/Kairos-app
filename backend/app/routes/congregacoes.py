@@ -1,10 +1,11 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from app.core.database import get_db
 from app.deps import congregacao_filter, get_current_user, log_activity, require_admin
-from app.models import Congregacao, Usuario
+from app.models import Congregacao, Membro, Usuario
 from app.utils import new_id
 
 router = APIRouter(prefix="/congregacoes", tags=["congregacoes"])
@@ -22,17 +23,29 @@ class CongregacaoIn(BaseModel):
 
 class CongregacaoOut(CongregacaoIn):
     id: str
+    total_membros: int = 0
     model_config = {"from_attributes": True}
 
 @router.get("", response_model=list[CongregacaoOut])
 def listar(db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user),
            cong_filtro: Optional[str] = Depends(congregacao_filter)):
-    q = db.query(Congregacao).filter(Congregacao.tenant_id == cu.tenant_id)
+    q = db.query(Congregacao, func.count(Membro.id).label("total_membros"))\
+        .outerjoin(Membro, Membro.congregacao_id == Congregacao.id)\
+        .filter(Congregacao.tenant_id == cu.tenant_id)\
+        .group_by(Congregacao.id)
     if cong_filtro:
         q = q.filter(Congregacao.id == cong_filtro)
-    return q.order_by(Congregacao.nome).all()
+    result = q.order_by(Congregacao.nome).all()
+    return [
+        CongregacaoOut(
+            id=c.id, nome=c.nome, endereco=c.endereco, cidade=c.cidade, estado=c.estado,
+            pastor_email=c.pastor_email, telefone=c.telefone, whatsapp=c.whatsapp,
+            email=c.email, status=c.status, total_membros=total
+        )
+        for c, total in result
+    ]
 
-@router.get("/{congregacao_id}", response_model=CongregacaoOut)
+@router.get("/{congregacao_id}")
 def obter(congregacao_id: str, db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user),
           cong_filtro: Optional[str] = Depends(congregacao_filter)):
     cong = db.query(Congregacao).filter(Congregacao.id == congregacao_id, Congregacao.tenant_id == cu.tenant_id).first()
@@ -40,7 +53,8 @@ def obter(congregacao_id: str, db: Session = Depends(get_db), cu: Usuario = Depe
         raise HTTPException(status_code=404, detail="Não encontrada")
     if cong_filtro and cong.id != cong_filtro:
         raise HTTPException(status_code=403, detail="Acesso negado")
-    return cong
+    total_membros = db.query(func.count(Membro.id)).filter(Membro.congregacao_id == congregacao_id).scalar() or 0
+    return {**{k: getattr(cong, k) for k in ("id","nome","endereco","cidade","estado","pastor_email","telefone","whatsapp","email","status")}, "total_membros": total_membros}
 
 @router.post("", response_model=CongregacaoOut, status_code=201)
 def criar(payload: CongregacaoIn, request: Request, db: Session = Depends(get_db), cu: Usuario = Depends(require_admin)):

@@ -6,7 +6,7 @@ import AssistenteIA from '../assistente/AssistenteIA';
 import {
   LayoutDashboard, User, Users, Settings, FileClock,
   ShieldCheck, Activity, LogOut, Menu, X,
-  Building2, UserCheck, Package, CreditCard, Droplets, Calendar, Shield, Upload,
+  Building2, UserCheck, Package, CreditCard, Droplets, Calendar, Shield, Upload, Bot,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { href: '/perfil', label: 'Meu perfil', icon: User },
   { href: '/admin/usuarios', label: 'Usuários', icon: Users, somenteAdmin: true },
   { href: '/admin/configuracoes', label: 'Configurações', icon: Settings, somenteAdmin: true },
+  { href: '/admin/assistente', label: 'Assistente', icon: Bot, somenteAdmin: true },
   { href: '/admin/logs', label: 'Logs', icon: FileClock, somenteAdmin: true },
   { href: '/master/licenca', label: 'Licença', icon: ShieldCheck, somenteMaster: true },
   { href: '/master/sistema', label: 'Sistema', icon: Activity, somenteMaster: true },
