@@ -17,7 +17,13 @@ def hash_token(token: str) -> str:
 def parse_date(value: str | None) -> date | None:
     if not value:
         return None
-    return datetime.strptime(value[:10], "%Y-%m-%d").date()
+    value = value[:10].strip()
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d", "%m/%d/%Y"):
+        try:
+            return datetime.strptime(value, fmt).date()
+        except ValueError:
+            continue
+    return None
 
 def parse_datetime(value: str | None) -> datetime | None:
     if not value:

@@ -78,3 +78,28 @@ export const LICENCA_STATUS = {
   suspenso: { label: 'Suspenso', color: 'bg-red-100 text-red-800' },
   expirado: { label: 'Expirado', color: 'bg-gray-100 text-gray-800' },
 };
+
+const _fmtNumero = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
+export const formatarNumeroBR = (n) => _fmtNumero.format(Number(n) || 0);
+
+const _fmtMoeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+export const formatarMoedaBR = (n) => _fmtMoeda.format(Number(n) || 0);
+
+export const formatarDataBR = (d) => {
+  if (!d) return '';
+  const date = d instanceof Date ? d : new Date(d);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+};
+
+export const formatarTelefoneBR = (s = '') => {
+  const d = String(s).replace(/\D/g, '');
+  if (d.length === 11) return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+  return s;
+};
+
+export const formatarCpfBR = (s = '') => {
+  const d = String(s).replace(/\D/g, '').padStart(11, '0').slice(0, 11);
+  return `${d.slice(0,3)}.${d.slice(3,6)}.${d.slice(6,9)}-${d.slice(9)}`;
+};

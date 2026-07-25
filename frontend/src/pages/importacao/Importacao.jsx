@@ -5,7 +5,7 @@ import api from '../../services/api';
 import { analisarArquivo, obterPreview, executarImportacao, obterHistorico, desfazerImportacao, agendarImportacao, obterStatusImportacao } from '../../services/importacao';
 
 const ETAPAS = ['Upload', 'Mapeamento', 'Preview', 'Executar', 'Relatorio'];
-const CAMPOS_KAIROS = ['nome','cpf','rg','email','data_nascimento','telefone','whatsapp','endereco','estado_civil','escolaridade','profissao','data_conversao','data_batismo','data_filiacao','cargo','nome_pai','nome_mae','filhos','status','observacoes'];
+const CAMPOS_KAIROS = ['nome','cpf','rg','data_nascimento','telefone','whatsapp','endereco','estado_civil','data_conversao','data_batismo','cargo','status','observacoes','email'];
 
 export default function Importacao() {
   const [etapa, setEtapa] = useState(0);

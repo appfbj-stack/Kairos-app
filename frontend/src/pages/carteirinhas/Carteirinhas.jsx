@@ -17,7 +17,7 @@ function ModalEmitir({ onFechar }) {
 
   const emitir = useMutation({
     mutationFn: () => api.post('/carteirinhas/emitir', { membro_id: membroId, validade_meses: validade }),
-    onSuccess: () => { qc.invalidateQueries(['carteirinhas']); qc.invalidateQueries(['dashboard']); onFechar(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['carteirinhas'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); onFechar(); },
   });
 
   return (
@@ -112,7 +112,7 @@ export default function Carteirinhas() {
 
   const deletar = useMutation({
     mutationFn: (id) => api.delete(`/carteirinhas/${id}`),
-    onSuccess: () => qc.invalidateQueries(['carteirinhas']),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['carteirinhas'] }),
   });
 
   const ativas = data.filter(c => c.status === 'ativa').length;

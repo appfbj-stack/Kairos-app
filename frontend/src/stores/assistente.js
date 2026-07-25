@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 
-export const useAssistenteStore = create((set, get) => ({
+export const useAssistenteStore = create((set) => ({
   aberto: false,
   historico: [],
   carregando: false,
   acaoPendente: null,
   dadosColetados: {},
+  contextoAtual: null,
+  dadosContexto: null,
 
   abrir: () => set({ aberto: true }),
   fechar: () => set({ aberto: false }),
@@ -20,4 +22,10 @@ export const useAssistenteStore = create((set, get) => ({
   setAcaoPendente: (acao) => set({ acaoPendente: acao }),
   limparAcaoPendente: () => set({ acaoPendente: null, dadosColetados: {} }),
   limparHistorico: () => set({ historico: [], acaoPendente: null, dadosColetados: {} }),
+
+  setContexto: (tipo, dados) => set({
+    contextoAtual: tipo,
+    dadosContexto: dados,
+  }),
+  limparContexto: () => set({ contextoAtual: null, dadosContexto: null }),
 }));

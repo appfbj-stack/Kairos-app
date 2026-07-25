@@ -1,42 +1,19 @@
+// frontend/src/components/layout/Sidebar.jsx
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Menu, LogOut, ChevronLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Menu, LogOut } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth';
 import { cn } from '../../lib/utils';
-import { MENU_ITEMS, ADMIN_ITEMS } from '../../lib/constants';
+import { MENU_GRUPOS, filtrarPorPerfis } from '../../lib/constants';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { ScrollArea } from '../ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../ui/sheet';
+import SidebarItem from './SidebarItem';
 
-function SidebarItem({ item, collapsed, onNavigate }) {
-  const location = useLocation();
-  const active = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
-  return (
-    <button
-      onClick={() => onNavigate?.(item.to)}
-      className={cn(
-        'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-        active
-          ? 'bg-primary text-primary-foreground'
-          : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-        collapsed && 'justify-center px-2'
-      )}
-    >
-      <item.icon className="h-4 w-4 shrink-0" />
-      {!collapsed && <span className="truncate">{item.label}</span>}
-    </button>
-  );
-}
-
-function SidebarBody({ collapsed, onItemClick }) {
-  const { usuario, logout, isAdmin } = useAuthStore();
+function SidebarBody({ collapsed, onNavigate }) {
+  const { usuario, logout, isAdmin, isMaster } = useAuthStore();
   const navigate = useNavigate();
-  const isUserAdmin = isAdmin();
-
-  const handleNavigate = (to) => {
-    navigate(to);
-    if (onItemClick) onItemClick();
-  };
+  const grupos = filtrarPorPerfis(MENU_GRUPOS, { isAdmin: isAdmin(), isMaster: isMaster() });
 
   const handleLogout = async () => {
     await logout();
@@ -44,98 +21,94 @@ function SidebarBody({ collapsed, onItemClick }) {
   };
 
   return (
-    <div className="flex h-full flex-col bg-sidebar">
-      <div className={cn('flex h-16 items-center border-b border-sidebar-border px-4 shrink-0', collapsed ? 'justify-center' : 'gap-2')}>
-        <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground font-bold text-sm shadow-sm">
-          K
-        </div>
+    <div className="flex h-full flex-col">
+      <div className={cn('flex h-16 items-center gap-2 border-b border-border px-4', collapsed && 'justify-center px-2')}>
+        <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary font-bold shadow-glow">K</div>
         {!collapsed && (
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-sidebar-foreground truncate">Kairós Sede</p>
-            <p className="text-[11px] text-sidebar-foreground/60 uppercase tracking-wide">Sorocaba</p>
+            <p className="text-sm font-semibold text-foreground truncate">Kairós Sede</p>
+            <p className="text-[11px] text-muted uppercase tracking-wide">Administração</p>
           </div>
         )}
       </div>
 
       <ScrollArea className="flex-1">
-        <nav className="space-y-0.5 p-2">
-          {MENU_ITEMS.map((item) => (
-            <SidebarItem key={item.to} item={item} collapsed={collapsed} onNavigate={handleNavigate} />
+        <nav className="space-y-4 p-3">
+          {grupos.map((g) => (
+            <div key={g.titulo}>
+              {!collapsed && <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted">{g.titulo}</p>}
+              <div className="space-y-1">
+                {g.items.map((item) => (
+                  <SidebarItem key={item.to} item={item} collapsed={collapsed} onNavigate={onNavigate} />
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
       </ScrollArea>
 
-      <div className="border-t border-sidebar-border p-2 space-y-0.5 shrink-0">
-        {ADMIN_ITEMS.filter(i => !i.adminOnly || isUserAdmin).map((item) => (
-          <SidebarItem key={item.to} item={item} collapsed={collapsed} onNavigate={handleNavigate} />
-        ))}
-        <button
-          onClick={handleLogout}
-          className={cn(
-            'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors',
-            collapsed && 'justify-center px-2'
-          )}
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          {!collapsed && <span className="truncate">Sair</span>}
-        </button>
-      </div>
-
-      <div className="border-t border-sidebar-border p-3 shrink-0">
-        <div className={cn('flex items-center gap-2', collapsed && 'justify-center')}>
-          <Avatar className="h-8 w-8 shrink-0 border border-sidebar-border">
+      <div className="border-t border-border p-3">
+        <div className={cn('flex items-center gap-2 rounded-lg p-2', collapsed && 'justify-center')}>
+          <Avatar className="h-8 w-8">
             {usuario?.foto_url ? <AvatarImage src={usuario.foto_url} alt={usuario.nome} /> : null}
-            <AvatarFallback className="bg-sidebar-accent text-sidebar-foreground text-xs">
-              {usuario?.nome?.[0]?.toUpperCase()}
-            </AvatarFallback>
+            <AvatarFallback>{usuario?.nome?.[0]?.toUpperCase()}</AvatarFallback>
           </Avatar>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-sidebar-foreground truncate">{usuario?.nome}</p>
-              <p className="text-[11px] text-sidebar-foreground/60 capitalize">{usuario?.perfil}</p>
+              <p className="text-sm font-medium text-foreground truncate">{usuario?.nome}</p>
+              <p className="text-[11px] text-muted capitalize">{usuario?.perfil}</p>
             </div>
           )}
+          <button
+            onClick={handleLogout}
+            className="text-muted hover:text-danger transition-colors"
+            aria-label="Sair"
+            title="Sair"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-export default function Sidebar({ collapsed, onToggleSidebar }) {
+export default function Sidebar({ collapsed }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <>
+      {/* Desktop */}
       <aside
         className={cn(
-          'hidden lg:flex shrink-0 h-screen sticky top-0 border-r border-sidebar-border transition-[width] duration-200',
+          'hidden lg:flex shrink-0 h-screen sticky top-0 border-r border-border bg-background transition-[width] duration-200',
           collapsed ? 'w-[72px]' : 'w-[260px]'
         )}
       >
-        <SidebarBody collapsed={collapsed} onItemClick={null} />
-        <button
-          onClick={onToggleSidebar}
-          className="absolute -right-3 top-20 z-10 hidden lg:flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground hover:bg-sidebar-accent transition-colors shadow-sm"
-        >
-          <ChevronLeft className={cn('h-3 w-3 transition-transform', collapsed && 'rotate-180')} />
-        </button>
+        <SidebarBody collapsed={collapsed} />
       </aside>
 
+      {/* Mobile via Sheet */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetTrigger asChild>
-          <button className="lg:hidden p-2 text-foreground hover:text-foreground/80" aria-label="Abrir menu">
+          <button className="lg:hidden p-2 text-muted hover:text-foreground" aria-label="Abrir menu">
             <Menu className="h-5 w-5" />
           </button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-[280px] p-0">
-          <SheetHeader className="sr-only">
-            <SheetTitle>Menu</SheetTitle>
+        <SheetContent side="left" className="w-[280px] p-0 bg-background">
+          <SheetHeader className="px-4 py-3 border-b border-border">
+            <SheetTitle className="flex items-center gap-2">
+              <div className="grid h-7 w-7 place-items-center rounded-lg bg-primary/15 text-primary font-bold">K</div>
+              Kairós Sede
+            </SheetTitle>
           </SheetHeader>
-          <div className="h-full">
-            <SidebarBody collapsed={false} onItemClick={() => setMobileOpen(false)} />
+          <div className="h-[calc(100%-56px)]">
+            <SidebarBody collapsed={false} onNavigate={() => setMobileOpen(false)} />
           </div>
         </SheetContent>
       </Sheet>
     </>
   );
 }
+
+export { SidebarBody };

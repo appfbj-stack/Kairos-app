@@ -22,7 +22,7 @@ function FormObreiro({ obreiro, onFechar }) {
 
   const salvar = useMutation({
     mutationFn: () => obreiro?.id ? api.put(`/obreiros/${obreiro.id}`, form) : api.post('/obreiros', form),
-    onSuccess: () => { qc.invalidateQueries(['obreiros']); qc.invalidateQueries(['dashboard']); onFechar(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['obreiros'] }); qc.invalidateQueries({ queryKey: ['dashboard'] }); onFechar(); },
   });
 
   return (
@@ -86,7 +86,7 @@ export default function Obreiros() {
 
   const deletar = useMutation({
     mutationFn: (id) => api.delete(`/obreiros/${id}`),
-    onSuccess: () => qc.invalidateQueries(['obreiros']),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['obreiros'] }),
   });
 
   const vencidos = data.filter(o => o.credencial_validade && new Date(o.credencial_validade) < new Date());

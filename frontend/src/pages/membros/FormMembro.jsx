@@ -1,39 +1,42 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import api from '../../services/api';
-import { X, Upload, Shield, Image as ImageIcon } from 'lucide-react';
+import { X, Upload, Shield } from 'lucide-react';
 
-function maskCPF(v) {
-  const d = v.replace(/\D/g, '').slice(0, 11);
-  return d.replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-}
-
-function maskPhone(v) {
-  const d = v.replace(/\D/g, '').slice(0, 11);
-  if (d.length <= 10) return d.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{4})(\d)/, '$1-$2');
-  return d.replace(/(\d{2})(\d)/, '($1) $2').replace(/(\d{5})(\d)/, '$1-$2');
-}
-
-const STATUS_OPCOES = [
-  { value: 'ativo', label: 'Ativo' },
-  { value: 'inativo', label: 'Inativo' },
-  { value: 'visitante', label: 'Visitante' },
-  { value: 'transferido', label: 'Transferido' },
+const CAMPOS = [
+  { name: 'nome', label: 'Nome completo *', type: 'text', required: true },
+  { name: 'cpf', label: 'CPF', type: 'text', mask: 'cpf' },
+  { name: 'rg', label: 'RG', type: 'text' },
+  { name: 'email', label: 'Email', type: 'email' },
+  { name: 'data_nascimento', label: 'Data de nascimento', type: 'date' },
+  { name: 'telefone', label: 'Telefone', type: 'tel' },
+  { name: 'whatsapp', label: 'WhatsApp', type: 'tel' },
+  { name: 'endereco', label: 'Endereço', type: 'text' },
+  { name: 'estado_civil', label: 'Estado civil', type: 'select', opcoes: ['solteiro', 'casado', 'divorciado', 'viuvo'] },
+  { name: 'escolaridade', label: 'Escolaridade', type: 'text' },
+  { name: 'profissao', label: 'Profissão', type: 'text' },
+  { name: 'data_conversao', label: 'Data de conversão', type: 'date' },
+  { name: 'data_batismo', label: 'Data de batismo', type: 'date' },
+  { name: 'data_filiacao', label: 'Data de filiação', type: 'date' },
+  { name: 'cargo', label: 'Cargo', type: 'text' },
+  { name: 'nome_pai', label: 'Nome do Pai', type: 'text' },
+  { name: 'nome_mae', label: 'Nome da Mãe', type: 'text' },
+  { name: 'filhos', label: 'Filhos', type: 'textarea' },
+  { name: 'status', label: 'Status', type: 'select', opcoes: ['ativo', 'inativo', 'transferido', 'falecido'], required: true },
+  { name: 'observacoes', label: 'Observações', type: 'textarea' },
 ];
 
 export default function FormMembro({ membro, onFechar }) {
   const qc = useQueryClient();
   const [form, setForm] = useState({
-    nome: '', cpf: '', email: '', telefone: '', endereco: '',
-    data_nascimento: '', data_batismo: '', data_filiacao: '',
-    escolaridade: '', profissao: '', nome_pai: '', nome_mae: '',
-    filhos: '', estado_civil: '', cargo: '', status: 'ativo',
-    congregacao_id: '',
-    has_membership_card: false, membership_card_issued_at: '',
-    consentimento_lgpd: false, lgpd_finalidade: '',
-    lgpd_autorizacao_imagem: false, lgpd_autorizacao_comunicacao: false,
+    nome: '', cpf: '', rg: '', email: '', data_nascimento: '', telefone: '',
+    whatsapp: '', endereco: '', estado_civil: '', escolaridade: '',
+    profissao: '', data_conversao: '', data_batismo: '', data_filiacao: '',
+    cargo: '', nome_pai: '', nome_mae: '', filhos: '',
+    status: 'ativo', observacoes: '', congregacao_id: '',
+    consentimento_lgpd: false, has_membership_card: false,
+    membership_card_issued_at: '', lgpd_autorizacao_imagem: false,
+    lgpd_autorizacao_comunicacao: false,
     ...membro,
   });
   const [foto, setFoto] = useState(null);
@@ -47,9 +50,7 @@ export default function FormMembro({ membro, onFechar }) {
   const salvar = useMutation({
     mutationFn: () => {
       const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => {
-        if (v !== '' && v !== null && v !== undefined) fd.append(k, v);
-      });
+      Object.entries(form).forEach(([k, v]) => { if (v !== '' && v !== null) fd.append(k, v); });
       fd.set('consentimento_lgpd', form.consentimento_lgpd ? 'true' : 'false');
       fd.set('has_membership_card', form.has_membership_card ? 'true' : 'false');
       fd.set('lgpd_autorizacao_imagem', form.lgpd_autorizacao_imagem ? 'true' : 'false');
@@ -68,30 +69,23 @@ export default function FormMembro({ membro, onFechar }) {
     setFotoPreview(URL.createObjectURL(file));
   };
 
-  const handleChange = (key) => (e) => {
-    const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    setForm(f => ({ ...f, [key]: val }));
-  };
-
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end lg:items-center justify-center p-0 lg:p-4">
-      <div className="bg-card w-full lg:max-w-2xl lg:rounded-xl border border-border max-h-[95vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-card z-10">
-          <h2 className="text-lg font-semibold text-foreground">{membro ? 'Editar' : 'Novo'} Membro</h2>
-          <button onClick={onFechar} className="p-2 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors">
-            <X size={20} />
-          </button>
+      <div className="bg-white w-full lg:max-w-2xl lg:rounded-2xl max-h-[95vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-4 border-b sticky top-0 bg-white">
+          <h2 className="text-lg font-semibold text-gray-900">{membro ? 'Editar' : 'Novo'} Membro</h2>
+          <button onClick={onFechar} className="p-2 hover:bg-gray-100 rounded-lg"><X size={20} /></button>
         </div>
 
-        <div className="p-4 space-y-5">
+        <div className="p-4 space-y-4">
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-full overflow-hidden bg-muted border-2 border-border flex items-center justify-center shrink-0">
+            <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200 flex items-center justify-center">
               {fotoPreview
                 ? <img src={fotoPreview} alt="Foto" className="w-full h-full object-cover" />
-                : <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                : <span className="text-3xl text-gray-300">👤</span>
               }
             </div>
-            <label className="flex items-center gap-2 bg-secondary text-secondary-foreground px-3 py-2 rounded-lg cursor-pointer text-sm font-medium hover:bg-accent transition-colors">
+            <label className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg cursor-pointer text-sm">
               <Upload size={16} /> Foto
               <input type="file" accept="image/*" onChange={handleFoto} className="hidden" />
             </label>
@@ -99,105 +93,83 @@ export default function FormMembro({ membro, onFechar }) {
 
           {congregacoes && (
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Congregação *</label>
-              <select value={form.congregacao_id} onChange={handleChange('congregacao_id')}
-                className="w-full border border-input bg-card text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring focus:border-ring">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Congregação *</label>
+              <select value={form.congregacao_id} onChange={e => setForm(f => ({ ...f, congregacao_id: e.target.value }))}
+                className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500">
                 <option value="">Selecione...</option>
                 {congregacoes.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
               </select>
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-foreground mb-1">Nome completo *</label>
-              <input type="text" value={form.nome} onChange={handleChange('nome')} required
-                className="w-full border border-input bg-card text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring focus:border-ring" />
-            </div>
-
-            <InputField label="CPF" value={maskCPF(form.cpf)} onChange={(v) => setForm(f => ({...f, cpf: v}))} placeholder="000.000.000-00" />
-            <InputField label="Email" type="email" value={form.email} onChange={handleChange('email')} placeholder="joao@email.com" />
-            <InputField label="Telefone" value={maskPhone(form.telefone)} onChange={(v) => setForm(f => ({...f, telefone: v}))} placeholder="(11) 99999-9999" />
-            <div className="lg:col-span-2">
-              <InputField label="Endereço" value={form.endereco} onChange={handleChange('endereco')} placeholder="Rua, número, bairro, cidade" />
-            </div>
-
-            <InputField label="Data de nascimento" type="date" value={form.data_nascimento} onChange={handleChange('data_nascimento')} />
-            <InputField label="Estado civil" value={form.estado_civil} onChange={handleChange('estado_civil')} placeholder="Solteiro(a)" />
-            <InputField label="Data de batismo" type="date" value={form.data_batismo} onChange={handleChange('data_batismo')} />
-            <InputField label="Data de filiação" type="date" value={form.data_filiacao} onChange={handleChange('data_filiacao')} />
-            <InputField label="Escolaridade" value={form.escolaridade} onChange={handleChange('escolaridade')} placeholder="Ensino médio completo" />
-            <InputField label="Profissão" value={form.profissao} onChange={handleChange('profissao')} placeholder="Professor(a)" />
-            <InputField label="Nome do Pai" value={form.nome_pai} onChange={handleChange('nome_pai')} placeholder="Nome completo do pai" />
-            <InputField label="Nome da Mãe" value={form.nome_mae} onChange={handleChange('nome_mae')} placeholder="Nome completo da mãe" />
-            <div className="lg:col-span-2">
-              <InputField label="Filhos" value={form.filhos} onChange={handleChange('filhos')} placeholder="Nomes dos filhos, separados por vírgula" />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Status</label>
-              <select value={form.status} onChange={handleChange('status')}
-                className="w-full border border-input bg-card text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring focus:border-ring">
-                {STATUS_OPCOES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1">Cargo</label>
-              <input type="text" value={form.cargo} onChange={handleChange('cargo')} placeholder="Ex: Diácono, Presbítero"
-                className="w-full border border-input bg-card text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring focus:border-ring" />
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {CAMPOS.map(({ name, label, type, required, opcoes }) => (
+              <div key={name} className={type === 'textarea' || name === 'nome' ? 'lg:col-span-2' : ''}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+                {type === 'select' ? (
+                  <select value={form[name]} onChange={e => setForm(f => ({ ...f, [name]: e.target.value }))}
+                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500">
+                    <option value="">Selecione...</option>
+                    {opcoes.map(o => <option key={o} value={o}>{o.charAt(0).toUpperCase() + o.slice(1).replace('_', ' ')}</option>)}
+                  </select>
+                ) : type === 'textarea' ? (
+                  <textarea value={form[name]} onChange={e => setForm(f => ({ ...f, [name]: e.target.value }))}
+                    rows={3} className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500 resize-none" />
+                ) : (
+                  <input type={type} value={form[name]} required={required}
+                    onChange={e => setForm(f => ({ ...f, [name]: e.target.value }))}
+                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" />
+                )}
+              </div>
+            ))}
           </div>
 
-          <div className="border-t border-border pt-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Carteirinha de Membro</h3>
+          <div className="border-t border-gray-200 pt-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Carteirinha de Membro</h3>
             <div className="flex items-center gap-2 mb-3">
               <input type="checkbox" id="has_membership_card" checked={form.has_membership_card}
-                onChange={handleChange('has_membership_card')}
-                className="h-4 w-4 rounded border-input text-primary focus:ring-ring" />
-              <label htmlFor="has_membership_card" className="text-sm text-foreground">Tem carteirinha de membro?</label>
+                onChange={e => setForm(f => ({ ...f, has_membership_card: e.target.checked }))}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+              <label htmlFor="has_membership_card" className="text-sm text-gray-700">Tem carteirinha de membro?</label>
             </div>
             {form.has_membership_card && (
-              <InputField label="Data de emissão" type="date" value={form.membership_card_issued_at} onChange={handleChange('membership_card_issued_at')} />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Data de emissão</label>
+                <input type="date" value={form.membership_card_issued_at}
+                  onChange={e => setForm(f => ({ ...f, membership_card_issued_at: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" />
+              </div>
             )}
           </div>
 
-          <div className="border-t border-border pt-4">
+          <div className="border-t border-gray-200 pt-4">
             <div className="flex items-center gap-2 mb-3">
-              <Shield size={18} className="text-primary" />
-              <h3 className="text-sm font-semibold text-foreground">LGPD - Consentimento de Dados</h3>
+              <Shield size={18} className="text-blue-600" />
+              <h3 className="text-sm font-semibold text-gray-900">LGPD - Consentimento de Dados</h3>
             </div>
-            <p className="text-xs text-muted-foreground mb-3">
+            <p className="text-xs text-gray-500 mb-3">
               Conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018)
             </p>
-            <div className="space-y-3 bg-muted/50 rounded-lg p-4">
+            <div className="space-y-3 bg-gray-50 rounded-lg p-4">
               <label className="flex items-start gap-2 cursor-pointer">
                 <input type="checkbox" checked={form.consentimento_lgpd}
-                  onChange={handleChange('consentimento_lgpd')}
-                  className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-ring" />
+                  onChange={e => setForm(f => ({ ...f, consentimento_lgpd: e.target.checked }))}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                 <div>
-                  <span className="text-sm font-medium text-foreground">Consentimento de dados</span>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <span className="text-sm font-medium text-gray-900">Consentimento de dados</span>
+                  <p className="text-xs text-gray-500 mt-0.5">
                     Autorizo o armazenamento e tratamento dos meus dados pessoais para fins de gestão eclesiástica, conforme a LGPD.
                   </p>
                 </div>
               </label>
 
-              {form.consentimento_lgpd && (
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">Finalidade do tratamento</label>
-                  <textarea value={form.lgpd_finalidade} onChange={handleChange('lgpd_finalidade')}
-                    rows={2} placeholder="Ex: Cadastro de membresia, comunicação de eventos, gestão administrativa"
-                    className="w-full border border-input bg-card text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring resize-none" />
-                </div>
-              )}
-
               <label className="flex items-start gap-2 cursor-pointer">
                 <input type="checkbox" checked={form.lgpd_autorizacao_imagem}
-                  onChange={handleChange('lgpd_autorizacao_imagem')}
-                  className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-ring" />
+                  onChange={e => setForm(f => ({ ...f, lgpd_autorizacao_imagem: e.target.checked }))}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                 <div>
-                  <span className="text-sm font-medium text-foreground">Autorização de imagem</span>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <span className="text-sm font-medium text-gray-900">Autorização de imagem</span>
+                  <p className="text-xs text-gray-500 mt-0.5">
                     Autorizo o uso da minha imagem em materiais internos da igreja e redes sociais.
                   </p>
                 </div>
@@ -205,11 +177,11 @@ export default function FormMembro({ membro, onFechar }) {
 
               <label className="flex items-start gap-2 cursor-pointer">
                 <input type="checkbox" checked={form.lgpd_autorizacao_comunicacao}
-                  onChange={handleChange('lgpd_autorizacao_comunicacao')}
-                  className="mt-0.5 h-4 w-4 rounded border-input text-primary focus:ring-ring" />
+                  onChange={e => setForm(f => ({ ...f, lgpd_autorizacao_comunicacao: e.target.checked }))}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                 <div>
-                  <span className="text-sm font-medium text-foreground">Autorização de comunicação</span>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <span className="text-sm font-medium text-gray-900">Autorização de comunicação</span>
+                  <p className="text-xs text-gray-500 mt-0.5">
                     Autorizo o envio de comunicações sobre eventos, atividades e informativos da igreja.
                   </p>
                 </div>
@@ -218,37 +190,17 @@ export default function FormMembro({ membro, onFechar }) {
           </div>
         </div>
 
-        <div className="flex gap-2 p-4 border-t border-border sticky bottom-0 bg-card">
-          <button onClick={onFechar}
-            className="flex-1 border border-input rounded-lg py-2 text-sm font-medium text-foreground hover:bg-accent transition-colors">
-            Cancelar
-          </button>
+        <div className="flex gap-2 p-4 border-t border-gray-200 sticky bottom-0 bg-white">
+          <button onClick={onFechar} className="flex-1 border rounded-lg py-2 text-sm font-medium hover:bg-gray-50">Cancelar</button>
           <button
             onClick={() => salvar.mutate()}
             disabled={salvar.isPending || !form.nome}
-            className="flex-1 bg-primary text-primary-foreground rounded-lg py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
           >
-            {salvar.isPending ? 'Salvando...' : membro ? 'Atualizar' : 'Cadastrar'}
+            {salvar.isPending ? 'Salvando...' : 'Salvar'}
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function InputField({ label, type = 'text', value, onChange, placeholder, className }) {
-  const handleInput = (e) => {
-    if (typeof onChange === 'function' && onChange.length === 1) {
-      onChange(e.target.value);
-    } else {
-      onChange(e);
-    }
-  };
-  return (
-    <div className={className}>
-      <label className="block text-sm font-medium text-foreground mb-1">{label}</label>
-      <input type={type} value={value} onChange={handleInput} placeholder={placeholder}
-        className="w-full border border-input bg-card text-foreground rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring focus:border-ring" />
     </div>
   );
 }

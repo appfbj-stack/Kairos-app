@@ -1,3 +1,4 @@
+// frontend/src/components/layout/Topbar.jsx
 import { PanelLeft } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
@@ -43,7 +44,7 @@ export default function Topbar({ onToggleSidebar }) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="ml-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Perfil">
+            <button className="ml-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Perfil">
               <Avatar className="h-9 w-9 border border-border">
                 {usuario?.foto_url ? <AvatarImage src={usuario.foto_url} alt={usuario.nome} /> : null}
                 <AvatarFallback>{usuario?.nome?.[0]?.toUpperCase()}</AvatarFallback>
@@ -53,11 +54,11 @@ export default function Topbar({ onToggleSidebar }) {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <p className="text-sm font-medium truncate">{usuario?.nome}</p>
-              <p className="text-xs text-muted-foreground capitalize">{usuario?.perfil}</p>
+              <p className="text-xs text-muted capitalize">{usuario?.perfil}</p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => navigate('/perfil')}>Meu perfil</DropdownMenuItem>
-            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">Sair</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout} className="text-danger focus:text-danger">Sair</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
