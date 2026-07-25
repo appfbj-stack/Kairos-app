@@ -39,3 +39,17 @@ export async function desfazerImportacao(importacaoId) {
   const { data } = await api.post(`/importacao/desfazer/${importacaoId}`);
   return data;
 }
+
+export async function obterStatusImportacao(importacaoId) {
+  const { data } = await api.get(`/importacao/status/${importacaoId}`);
+  return data;
+}
+
+export async function agendarImportacao({ sessaoId, congregacaoId, executarEm }) {
+  const { data } = await api.post('/importacao/agendar', {
+    sessao_id: sessaoId,
+    congregacao_id: congregacaoId,
+    executar_em: executarEm,
+  });
+  return data;
+}

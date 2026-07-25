@@ -21,17 +21,29 @@ class MembroOut(BaseModel):
     nome: str
     cpf: Optional[str]
     rg: Optional[str]
+    email: Optional[str]
     data_nascimento: Optional[date]
     telefone: Optional[str]
     whatsapp: Optional[str]
     endereco: Optional[str]
     estado_civil: Optional[str]
+    escolaridade: Optional[str]
+    profissao: Optional[str]
     data_conversao: Optional[date]
     data_batismo: Optional[date]
+    data_filiacao: Optional[date]
     cargo: Optional[str]
+    nome_pai: Optional[str]
+    nome_mae: Optional[str]
+    filhos: Optional[str]
     status: str
     observacoes: Optional[str]
+    has_membership_card: bool = False
+    membership_card_issued_at: Optional[date]
     consentimento_lgpd: bool = False
+    lgpd_finalidade: Optional[str]
+    lgpd_autorizacao_imagem: bool = False
+    lgpd_autorizacao_comunicacao: bool = False
     anonimizado_em: Optional[str] = None
     model_config = {"from_attributes": True}
 
@@ -111,12 +123,16 @@ def obter(membro_id: str, db: Session = Depends(get_db), cu: Usuario = Depends(g
 
 @router.post("", response_model=MembroOut, status_code=201)
 def criar(
-    nome: str = Form(...), cpf: str = Form(None), rg: str = Form(None),
+    nome: str = Form(...), cpf: str = Form(None), rg: str = Form(None), email: str = Form(None),
     data_nascimento: str = Form(None), telefone: str = Form(None), whatsapp: str = Form(None),
-    endereco: str = Form(None), estado_civil: str = Form(None), data_conversao: str = Form(None),
-    data_batismo: str = Form(None), cargo: str = Form(None), status: str = Form("ativo"),
+    endereco: str = Form(None), estado_civil: str = Form(None), escolaridade: str = Form(None),
+    profissao: str = Form(None), data_conversao: str = Form(None), data_batismo: str = Form(None),
+    data_filiacao: str = Form(None), cargo: str = Form(None), nome_pai: str = Form(None),
+    nome_mae: str = Form(None), filhos: str = Form(None), status: str = Form("ativo"),
     observacoes: str = Form(None), congregacao_id: str = Form(None), foto: UploadFile = File(None),
-    consentimento_lgpd: bool = Form(False),
+    consentimento_lgpd: bool = Form(False), lgpd_finalidade: str = Form(None),
+    lgpd_autorizacao_imagem: bool = Form(False), lgpd_autorizacao_comunicacao: bool = Form(False),
+    has_membership_card: bool = Form(False), membership_card_issued_at: str = Form(None),
     db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user),
     cong_filtro: Optional[str] = Depends(congregacao_filter),
 ):
@@ -125,11 +141,20 @@ def criar(
         raise HTTPException(status_code=400, detail="congregacao_id obrigatório")
     membro = Membro(
         id=new_id(), tenant_id=cu.tenant_id, congregacao_id=cong_id, foto_url=_salvar_foto(foto),
-        nome=nome, cpf=cpf, rg=rg, data_nascimento=parse_date(data_nascimento), telefone=telefone,
+        nome=nome, cpf=cpf, rg=rg, email=email,
+        data_nascimento=parse_date(data_nascimento), telefone=telefone,
         whatsapp=whatsapp, endereco=endereco, estado_civil=estado_civil,
+        escolaridade=escolaridade, profissao=profissao,
         data_conversao=parse_date(data_conversao), data_batismo=parse_date(data_batismo),
-        cargo=cargo, status=status, observacoes=observacoes,
+        data_filiacao=parse_date(data_filiacao), cargo=cargo,
+        nome_pai=nome_pai, nome_mae=nome_mae, filhos=filhos,
+        status=status, observacoes=observacoes,
+        has_membership_card=has_membership_card,
+        membership_card_issued_at=parse_date(membership_card_issued_at),
         consentimento_lgpd=consentimento_lgpd,
+        lgpd_finalidade=lgpd_finalidade,
+        lgpd_autorizacao_imagem=lgpd_autorizacao_imagem,
+        lgpd_autorizacao_comunicacao=lgpd_autorizacao_comunicacao,
         data_consentimento=datetime.now(timezone.utc) if consentimento_lgpd else None,
     )
     db.add(membro); db.commit(); db.refresh(membro)
@@ -138,11 +163,16 @@ def criar(
 @router.put("/{membro_id}", response_model=MembroOut)
 def atualizar(
     membro_id: str,
-    nome: str = Form(...), cpf: str = Form(None), rg: str = Form(None),
+    nome: str = Form(...), cpf: str = Form(None), rg: str = Form(None), email: str = Form(None),
     data_nascimento: str = Form(None), telefone: str = Form(None), whatsapp: str = Form(None),
-    endereco: str = Form(None), estado_civil: str = Form(None), data_conversao: str = Form(None),
-    data_batismo: str = Form(None), cargo: str = Form(None), status: str = Form("ativo"),
+    endereco: str = Form(None), estado_civil: str = Form(None), escolaridade: str = Form(None),
+    profissao: str = Form(None), data_conversao: str = Form(None), data_batismo: str = Form(None),
+    data_filiacao: str = Form(None), cargo: str = Form(None), nome_pai: str = Form(None),
+    nome_mae: str = Form(None), filhos: str = Form(None), status: str = Form("ativo"),
     observacoes: str = Form(None), foto: UploadFile = File(None),
+    consentimento_lgpd: bool = Form(False), lgpd_finalidade: str = Form(None),
+    lgpd_autorizacao_imagem: bool = Form(False), lgpd_autorizacao_comunicacao: bool = Form(False),
+    has_membership_card: bool = Form(False), membership_card_issued_at: str = Form(None),
     db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user),
     cong_filtro: Optional[str] = Depends(congregacao_filter),
 ):
@@ -156,19 +186,35 @@ def atualizar(
     membro.nome = nome
     membro.cpf = cpf
     membro.rg = rg
+    membro.email = email
     membro.data_nascimento = parse_date(data_nascimento)
     membro.telefone = telefone
     membro.whatsapp = whatsapp
     membro.endereco = endereco
     membro.estado_civil = estado_civil
+    membro.escolaridade = escolaridade
+    membro.profissao = profissao
     membro.data_conversao = parse_date(data_conversao)
     membro.data_batismo = parse_date(data_batismo)
+    membro.data_filiacao = parse_date(data_filiacao)
     membro.cargo = cargo
+    membro.nome_pai = nome_pai
+    membro.nome_mae = nome_mae
+    membro.filhos = filhos
     membro.status = status
     membro.observacoes = observacoes
+    membro.has_membership_card = has_membership_card
+    membro.membership_card_issued_at = parse_date(membership_card_issued_at)
+    membro.consentimento_lgpd = consentimento_lgpd
+    membro.lgpd_finalidade = lgpd_finalidade
+    membro.lgpd_autorizacao_imagem = lgpd_autorizacao_imagem
+    membro.lgpd_autorizacao_comunicacao = lgpd_autorizacao_comunicacao
+    if consentimento_lgpd and not membro.data_consentimento:
+        membro.data_consentimento = datetime.now(timezone.utc)
     if foto_url:
         membro.foto_url = foto_url
-    db.commit(); db.refresh(membro)
+    db.commit()
+    db.refresh(membro)
     return membro
 
 @router.delete("/{membro_id}")
