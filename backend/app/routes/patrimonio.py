@@ -68,10 +68,13 @@ def atualizar(
     item_id: str, descricao: str = Form(...), codigo: str = Form(None), categoria: str = Form(None),
     valor: str = Form(None), localizacao: str = Form(None), foto: UploadFile = File(None),
     db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user),
+    cong_filtro: Optional[str] = Depends(congregacao_filter),
 ):
     item = db.query(Patrimonio).filter(Patrimonio.id == item_id, Patrimonio.tenant_id == cu.tenant_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Não encontrado")
+    if cong_filtro and item.congregacao_id != cong_filtro:
+        raise HTTPException(status_code=403, detail="Acesso negado")
     foto_url = _salvar_foto(foto)
     item.descricao = descricao
     item.codigo = codigo
@@ -84,10 +87,13 @@ def atualizar(
     return item
 
 @router.put("/{item_id}/desativar", response_model=PatrimonioOut)
-def desativar(item_id: str, db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user)):
+def desativar(item_id: str, db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user),
+              cong_filtro: Optional[str] = Depends(congregacao_filter)):
     item = db.query(Patrimonio).filter(Patrimonio.id == item_id, Patrimonio.tenant_id == cu.tenant_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Não encontrado")
+    if cong_filtro and item.congregacao_id != cong_filtro:
+        raise HTTPException(status_code=403, detail="Acesso negado")
     item.ativo = False
     db.commit(); db.refresh(item)
     return item

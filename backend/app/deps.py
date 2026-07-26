@@ -43,7 +43,8 @@ require_master = require_roles("master")
 require_admin = require_roles("master", "admin")
 
 def congregacao_filter(cu: Usuario = Depends(get_current_user)) -> str | None:
-    # MODO SEM LOGIN - sem filtro de congregação
+    if cu.perfil in ("cliente", "pastor"):
+        return cu.congregacao_id
     return None
 
 def require_active_license(db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user)) -> Usuario:

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
-import { Building2, Edit, Trash2, Phone, Mail, MapPin, Users, ArrowLeft, Calendar } from 'lucide-react';
+import { Building2, Edit, Trash2, Phone, Mail, MapPin, Users, ArrowLeft, Calendar, User } from 'lucide-react';
 
 function FormCongregacao({ cong, onFechar }) {
   const qc = useQueryClient();
@@ -207,6 +207,64 @@ export default function CongregacaoDetalhes() {
       </div>
 
       {editModal && <FormCongregacao cong={data} onFechar={() => setEditModal(false)} />}
+
+      <div className="bg-white rounded-xl border p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Membros desta Congregação</h2>
+        <ListaMembros congregacaoId={id} />
+      </div>
+    </div>
+  );
+}
+
+function ListaMembros({ congregacaoId }) {
+  const { data: membros, isLoading } = useQuery({
+    queryKey: ['membros-por-congregacao', congregacaoId],
+    queryFn: () => api.get(`/membros?congregacao_id=${congregacaoId}&limit=100`).then(r => r.data),
+    enabled: !!congregacaoId,
+  });
+
+  if (isLoading) {
+    return <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />;
+  }
+
+  if (!membros?.dados?.length) {
+    return <p className="text-sm text-gray-400 text-center py-4">Nenhum membro cadastrado nesta congregação.</p>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="bg-gray-50 text-gray-500">
+          <tr>
+            <th className="text-left px-3 py-2 font-medium">Nome</th>
+            <th className="text-left px-3 py-2 font-medium">CPF</th>
+            <th className="text-left px-3 py-2 font-medium">Telefone</th>
+            <th className="text-left px-3 py-2 font-medium">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {membros.dados.map(m => (
+            <tr key={m.id} className="border-t hover:bg-gray-50">
+              <td className="px-3 py-2.5 flex items-center gap-2">
+                <User size={14} className="text-gray-400" />
+                <span className="font-medium text-gray-900">{m.nome}</span>
+              </td>
+              <td className="px-3 py-2.5 text-gray-600">{m.cpf || '—'}</td>
+              <td className="px-3 py-2.5 text-gray-600">{m.telefone || '—'}</td>
+              <td className="px-3 py-2.5">
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  m.status === 'ativo' ? 'bg-green-100 text-green-700' :
+                  m.status === 'inativo' ? 'bg-gray-100 text-gray-600' :
+                  m.status === 'transferido' ? 'bg-blue-100 text-blue-700' :
+                  'bg-red-100 text-red-700'
+                }`}>
+                  {m.status}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

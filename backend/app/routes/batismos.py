@@ -68,10 +68,13 @@ def criar(payload: BatismoIn, db: Session = Depends(get_db), cu: Usuario = Depen
     return _serializar(batismo, membro, pastor)
 
 @router.delete("/{batismo_id}")
-def remover(batismo_id: str, db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user)):
+def remover(batismo_id: str, db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user),
+            cong_filtro: Optional[str] = Depends(congregacao_filter)):
     b = db.query(Batismo).filter(Batismo.id == batismo_id, Batismo.tenant_id == cu.tenant_id).first()
     if not b:
         raise HTTPException(status_code=404, detail="Não encontrado")
+    if cong_filtro and b.congregacao_id != cong_filtro:
+        raise HTTPException(status_code=403, detail="Acesso negado")
     membro = db.query(Membro).filter(Membro.id == b.membro_id).first()
     if membro:
         membro.data_batismo = None

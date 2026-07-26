@@ -62,9 +62,12 @@ def criar(payload: EventoIn, db: Session = Depends(get_db), cu: Usuario = Depend
     return evento
 
 @router.delete("/{evento_id}")
-def remover(evento_id: str, db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user)):
+def remover(evento_id: str, db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user),
+            cong_filtro: Optional[str] = Depends(congregacao_filter)):
     evento = db.query(Evento).filter(Evento.id == evento_id, Evento.tenant_id == cu.tenant_id).first()
     if not evento:
         raise HTTPException(status_code=404, detail="Não encontrado")
+    if cong_filtro and evento.congregacao_id != cong_filtro:
+        raise HTTPException(status_code=403, detail="Acesso negado")
     db.delete(evento); db.commit()
     return {"ok": True}

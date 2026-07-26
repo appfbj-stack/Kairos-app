@@ -69,6 +69,7 @@ export const CATEGORIAS_PATRIMONIO = [
 export const PERFIS = {
   master: { label: 'Master', color: 'bg-purple-100 text-purple-800' },
   admin: { label: 'Administrador', color: 'bg-blue-100 text-blue-800' },
+  pastor: { label: 'Pastor', color: 'bg-emerald-100 text-emerald-800' },
   cliente: { label: 'Cliente', color: 'bg-gray-100 text-gray-800' },
 };
 

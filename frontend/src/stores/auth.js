@@ -45,6 +45,8 @@ export const useAuthStore = create(
 
       isMaster: () => get().usuario?.perfil === 'master',
       isAdmin: () => ['master', 'admin'].includes(get().usuario?.perfil),
+      isPastor: () => get().usuario?.perfil === 'pastor',
+      congregacaoId: () => get().usuario?.congregacao_id,
     }),
     { name: 'kairos-auth', partialize: (s) => ({ token: s.token }) }
   )

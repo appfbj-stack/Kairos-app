@@ -68,10 +68,13 @@ def criar(payload: ObreiroIn, db: Session = Depends(get_db), cu: Usuario = Depen
     return _serializar(obreiro)
 
 @router.put("/{obreiro_id}")
-def atualizar(obreiro_id: str, payload: ObreiroUpdate, db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user)):
+def atualizar(obreiro_id: str, payload: ObreiroUpdate, db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user),
+              cong_filtro: Optional[str] = Depends(congregacao_filter)):
     obreiro = db.query(Obreiro).filter(Obreiro.id == obreiro_id, Obreiro.tenant_id == cu.tenant_id).first()
     if not obreiro:
         raise HTTPException(status_code=404, detail="Não encontrado")
+    if cong_filtro and obreiro.congregacao_id != cong_filtro:
+        raise HTTPException(status_code=403, detail="Acesso negado")
     obreiro.categoria = payload.categoria
     obreiro.credencial_numero = payload.credencial_numero
     obreiro.credencial_emissao = parse_date(payload.credencial_emissao)
@@ -81,9 +84,12 @@ def atualizar(obreiro_id: str, payload: ObreiroUpdate, db: Session = Depends(get
     return _serializar(obreiro)
 
 @router.delete("/{obreiro_id}")
-def remover(obreiro_id: str, db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user)):
+def remover(obreiro_id: str, db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user),
+            cong_filtro: Optional[str] = Depends(congregacao_filter)):
     obreiro = db.query(Obreiro).filter(Obreiro.id == obreiro_id, Obreiro.tenant_id == cu.tenant_id).first()
     if not obreiro:
         raise HTTPException(status_code=404, detail="Não encontrado")
+    if cong_filtro and obreiro.congregacao_id != cong_filtro:
+        raise HTTPException(status_code=403, detail="Acesso negado")
     db.delete(obreiro); db.commit()
     return {"ok": True}

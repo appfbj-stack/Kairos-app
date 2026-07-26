@@ -4,7 +4,7 @@ import api from '../../services/api';
 import { PERFIS } from '../../lib/utils';
 import { Plus, Trash2 } from 'lucide-react';
 
-const PERFIL_OPCOES = ['admin', 'cliente'];
+const PERFIL_OPCOES = ['admin', 'pastor', 'cliente'];
 
 export default function Usuarios() {
   const qc = useQueryClient();
@@ -58,7 +58,7 @@ export default function Usuarios() {
                 className="border rounded-lg px-3 py-2 md:col-span-1">
           {PERFIL_OPCOES.map((p) => <option key={p} value={p}>{PERFIS[p].label}</option>)}
         </select>
-        {form.perfil === 'cliente' && (
+        {['cliente', 'pastor'].includes(form.perfil) && (
           <select required value={form.congregacao_id} onChange={(e) => setForm({ ...form, congregacao_id: e.target.value })}
                   className="border rounded-lg px-3 py-2 md:col-span-1">
             <option value="">Congregação...</option>

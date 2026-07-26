@@ -54,10 +54,13 @@ def pendentes(db: Session = Depends(get_db), cu: Usuario = Depends(get_current_u
              "congregacao_id": m.congregacao_id} for m in membros]
 
 @router.post("/emitir", status_code=201)
-def emitir(payload: EmitirIn, db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user)):
+def emitir(payload: EmitirIn, db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user),
+           cong_filtro: Optional[str] = Depends(congregacao_filter)):
     membro = db.query(Membro).filter(Membro.id == payload.membro_id, Membro.tenant_id == cu.tenant_id).first()
     if not membro:
         raise HTTPException(status_code=404, detail="Membro não encontrado")
+    if cong_filtro and membro.congregacao_id != cong_filtro:
+        raise HTTPException(status_code=403, detail="Acesso negado")
 
     hoje = date.today()
     validade = hoje + relativedelta(months=payload.validade_meses)
@@ -81,8 +84,13 @@ def emitir(payload: EmitirIn, db: Session = Depends(get_db), cu: Usuario = Depen
     return _serializar(carteirinha, membro, congregacao)
 
 @router.delete("/{carteirinha_id}")
-def remover(carteirinha_id: str, db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user)):
+def remover(carteirinha_id: str, db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user),
+            cong_filtro: Optional[str] = Depends(congregacao_filter)):
     c = db.query(Carteirinha).filter(Carteirinha.id == carteirinha_id, Carteirinha.tenant_id == cu.tenant_id).first()
-    if c:
-        db.delete(c); db.commit()
+    if not c:
+        raise HTTPException(status_code=404, detail="Não encontrado")
+    membro = db.query(Membro).filter(Membro.id == c.membro_id).first()
+    if cong_filtro and membro and membro.congregacao_id != cong_filtro:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+    db.delete(c); db.commit()
     return {"ok": True}
