@@ -129,6 +129,7 @@ class Membro(Base):
     filhos: Mapped[str | None] = mapped_column(Text, nullable=True)
     has_membership_card: Mapped[bool] = mapped_column(Boolean, default=False)
     membership_card_issued_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    membership_card_expires_at: Mapped[date | None] = mapped_column(Date, nullable=True)
     lgpd_finalidade: Mapped[str | None] = mapped_column(Text, nullable=True)
     lgpd_autorizacao_imagem: Mapped[bool] = mapped_column(Boolean, default=False)
     lgpd_autorizacao_comunicacao: Mapped[bool] = mapped_column(Boolean, default=False)

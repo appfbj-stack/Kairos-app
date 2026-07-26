@@ -40,6 +40,7 @@ class MembroOut(BaseModel):
     observacoes: Optional[str]
     has_membership_card: bool = False
     membership_card_issued_at: Optional[date]
+    membership_card_expires_at: Optional[date]
     consentimento_lgpd: bool = False
     lgpd_finalidade: Optional[str]
     lgpd_autorizacao_imagem: bool = False
@@ -133,6 +134,7 @@ def criar(
     consentimento_lgpd: bool = Form(False), lgpd_finalidade: str = Form(None),
     lgpd_autorizacao_imagem: bool = Form(False), lgpd_autorizacao_comunicacao: bool = Form(False),
     has_membership_card: bool = Form(False), membership_card_issued_at: str = Form(None),
+    membership_card_expires_at: str = Form(None),
     db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user),
     cong_filtro: Optional[str] = Depends(congregacao_filter),
 ):
@@ -151,6 +153,7 @@ def criar(
         status=status, observacoes=observacoes,
         has_membership_card=has_membership_card,
         membership_card_issued_at=parse_date(membership_card_issued_at),
+        membership_card_expires_at=parse_date(membership_card_expires_at),
         consentimento_lgpd=consentimento_lgpd,
         lgpd_finalidade=lgpd_finalidade,
         lgpd_autorizacao_imagem=lgpd_autorizacao_imagem,
@@ -173,6 +176,7 @@ def atualizar(
     consentimento_lgpd: bool = Form(False), lgpd_finalidade: str = Form(None),
     lgpd_autorizacao_imagem: bool = Form(False), lgpd_autorizacao_comunicacao: bool = Form(False),
     has_membership_card: bool = Form(False), membership_card_issued_at: str = Form(None),
+    membership_card_expires_at: str = Form(None),
     db: Session = Depends(get_db), cu: Usuario = Depends(get_current_user),
     cong_filtro: Optional[str] = Depends(congregacao_filter),
 ):
@@ -205,6 +209,7 @@ def atualizar(
     membro.observacoes = observacoes
     membro.has_membership_card = has_membership_card
     membro.membership_card_issued_at = parse_date(membership_card_issued_at)
+    membro.membership_card_expires_at = parse_date(membership_card_expires_at)
     membro.consentimento_lgpd = consentimento_lgpd
     membro.lgpd_finalidade = lgpd_finalidade
     membro.lgpd_autorizacao_imagem = lgpd_autorizacao_imagem

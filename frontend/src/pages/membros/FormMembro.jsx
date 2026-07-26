@@ -35,8 +35,8 @@ export default function FormMembro({ membro, onFechar }) {
     cargo: '', nome_pai: '', nome_mae: '', filhos: '',
     status: 'ativo', observacoes: '', congregacao_id: '',
     consentimento_lgpd: false, has_membership_card: false,
-    membership_card_issued_at: '', lgpd_autorizacao_imagem: false,
-    lgpd_autorizacao_comunicacao: false,
+    membership_card_issued_at: '', membership_card_expires_at: '',
+    lgpd_autorizacao_imagem: false, lgpd_autorizacao_comunicacao: false,
     ...membro,
   });
   const [foto, setFoto] = useState(null);
@@ -133,11 +133,19 @@ export default function FormMembro({ membro, onFechar }) {
               <label htmlFor="has_membership_card" className="text-sm text-gray-700">Tem carteirinha de membro?</label>
             </div>
             {form.has_membership_card && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Data de emissão</label>
-                <input type="date" value={form.membership_card_issued_at}
-                  onChange={e => setForm(f => ({ ...f, membership_card_issued_at: e.target.value }))}
-                  className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" />
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Data de emissão</label>
+                  <input type="date" value={form.membership_card_issued_at}
+                    onChange={e => setForm(f => ({ ...f, membership_card_issued_at: e.target.value }))}
+                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Data de validade</label>
+                  <input type="date" value={form.membership_card_expires_at}
+                    onChange={e => setForm(f => ({ ...f, membership_card_expires_at: e.target.value }))}
+                    className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" />
+                </div>
               </div>
             )}
           </div>
