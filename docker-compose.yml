@@ -32,7 +32,7 @@ services:
     volumes:
       - uploads_data:/app/uploads
     ports:
-      - "8012:8000"
+      - "8013:8000"
     networks:
       kairos_network:
         aliases:
@@ -46,7 +46,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "3022:80"
+      - "3007:80"
     networks:
       - kairos_network
 
