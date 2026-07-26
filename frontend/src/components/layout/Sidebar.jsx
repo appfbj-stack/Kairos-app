@@ -26,8 +26,8 @@ function SidebarBody({ collapsed, onNavigate }) {
         <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary font-bold shadow-glow">K</div>
         {!collapsed && (
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate">Kairós Sede</p>
-            <p className="text-[11px] text-muted uppercase tracking-wide">Administração</p>
+            <p className="text-sm font-semibold text-foreground truncate">Kairós</p>
+            <p className="text-[11px] text-muted uppercase tracking-wide">Gestão Eclesiástica</p>
           </div>
         )}
       </div>
@@ -99,7 +99,7 @@ export default function Sidebar({ collapsed }) {
           <SheetHeader className="px-4 py-3 border-b border-border">
             <SheetTitle className="flex items-center gap-2">
               <div className="grid h-7 w-7 place-items-center rounded-lg bg-primary/15 text-primary font-bold">K</div>
-              Kairós Sede
+              Kairós
             </SheetTitle>
           </SheetHeader>
           <div className="h-[calc(100%-56px)]">
