@@ -1,0 +1,280 @@
+"use client";
+
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Send, Sparkles, RotateCcw, User, Mic, MicOff, Volume2 } from "lucide-react";
+import { toast } from "sonner";
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
+
+const QUICK_PROMPTS = [
+  { label: "📖 Sermão", text: "Crie um esboço de sermão sobre fé e perseverança com 3 pontos e versículos" },
+  { label: "🙏 Oração", text: "Escreva uma oração de abertura para o culto de domingo" },
+  { label: "📱 Post", text: "Crie uma postagem inspiradora para o Instagram da igreja" },
+  { label: "📋 Devocional", text: "Gere o devocional de hoje com versículo, reflexão e aplicação prática" },
+  { label: "💬 Comunicado", text: "Redija um comunicado cordial para os membros sobre dízimo e oferta" },
+  { label: "🌱 Células", text: "Como posso motivar os líderes de células a crescerem?" },
+];
+
+interface AiClientProps {
+  churchName: string;
+  userName: string;
+  userRole: string;
+}
+
+export function AiClient({ churchName, userName, userRole }: AiClientProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [speakingId, setSpeakingId] = useState<number | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  const toggleListening = useCallback(() => {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+
+    const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+      toast.error("Seu navegador não suporta reconhecimento de voz. Use Chrome ou Edge.");
+      return;
+    }
+
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = "pt-BR";
+    recognition.interimResults = true;
+    recognition.continuous = true;
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = Array.from(event.results)
+        .map((r) => r[0]?.transcript ?? "")
+        .join("");
+      setInput(transcript);
+    };
+
+    recognition.onend = () => setListening(false);
+
+    recognition.onerror = (event) => {
+      const err = (event as Event & { error?: string }).error;
+      setListening(false);
+      if (err === "not-allowed") {
+        toast.error("Microfone bloqueado. Permita o acesso nas configurações do navegador.");
+      } else if (err === "no-speech") {
+        toast.error("Nenhum áudio detectado. Tente falar mais alto.");
+      } else if (err === "aborted") {
+        return;
+      } else {
+        toast.error("Erro no microfone. Tente novamente.");
+      }
+    };
+
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+      setListening(true);
+    } catch {
+      toast.error("Erro ao iniciar o microfone. Tente novamente.");
+    }
+  }, [listening]);
+
+  const speak = useCallback((text: string, index: number) => {
+    if (speakingId === index) {
+      window.speechSynthesis.cancel();
+      setSpeakingId(null);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "pt-BR";
+    utterance.rate = 1;
+    utterance.onend = () => setSpeakingId(null);
+    utterance.onerror = () => setSpeakingId(null);
+    setSpeakingId(index);
+    window.speechSynthesis.speak(utterance);
+  }, [speakingId]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const send = async (text?: string) => {
+    const content = (text ?? input).trim();
+    if (!content || loading) return;
+    setInput("");
+
+    const userMsg: Message = { role: "user", content };
+    const next = [...messages, userMsg];
+    setMessages(next);
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: next,
+          context: { churchName, userRole },
+          module: "chat",
+        }),
+      });
+      const data = await res.json() as { content?: string; error?: string };
+      setMessages([...next, { role: "assistant", content: data.content ?? "Erro ao processar resposta." }]);
+    } catch {
+      setMessages([...next, { role: "assistant", content: "Erro de conexão. Tente novamente." }]);
+    } finally {
+      setLoading(false);
+      textareaRef.current?.focus();
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void send();
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-xl">✨</div>
+        <div>
+          <h1 className="text-xl font-bold">Kairos AI</h1>
+          <p className="text-sm text-muted-foreground">Assistente pastoral inteligente</p>
+        </div>
+        {messages.length > 0 && (
+          <button
+            onClick={() => setMessages([])}
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs text-muted-foreground hover:bg-muted transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Nova conversa
+          </button>
+        )}
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto space-y-4 pb-4">
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center gap-6">
+            <div>
+              <div className="text-4xl mb-3">✝️</div>
+              <h2 className="text-lg font-semibold mb-1">Como posso ajudar, {userName.split(" ")[0]}?</h2>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                Sou o assistente pastoral da {churchName}. Posso ajudar com mensagens, orações, planejamento e muito mais.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
+              {QUICK_PROMPTS.map((p) => (
+                <button
+                  key={p.label}
+                  onClick={() => void send(p.text)}
+                  className="text-left px-4 py-3 rounded-xl border bg-card text-sm hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                >
+                  <span className="font-medium block">{p.label}</span>
+                  <span className="text-xs text-muted-foreground line-clamp-1">{p.text}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                {msg.role === "assistant" && (
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0 mt-1">
+                    <Sparkles className="w-4 h-4 text-primary" />
+                  </div>
+                )}
+                <div className="group relative max-w-[80%]">
+                  <div
+                    className={`rounded-2xl px-4 py-3 text-sm whitespace-pre-wrap leading-relaxed ${
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground rounded-tr-sm"
+                        : "bg-card border rounded-tl-sm"
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                  {msg.role === "assistant" && (
+                    <button
+                      onClick={() => speak(msg.content, i)}
+                      className={`absolute -bottom-1 -right-2 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
+                        speakingId === i
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
+                      title={speakingId === i ? "Parar" : "Ouvir"}
+                    >
+                      <Volume2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+                {msg.role === "user" && (
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0 mt-1">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+            ))}
+            {loading && (
+              <div className="flex gap-3 justify-start">
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                </div>
+                <div className="bg-card border rounded-2xl rounded-tl-sm px-4 py-3">
+                  <div className="flex gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-muted-foreground/60" />
+                    <span className="w-2 h-2 rounded-full bg-muted-foreground/40" />
+                    <span className="w-2 h-2 rounded-full bg-muted-foreground/20" />
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div className="flex gap-2 items-end pt-2 border-t">
+        <textarea
+          ref={textareaRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Pergunte algo... (Enter para enviar)"
+          rows={2}
+          className="flex-1 px-4 py-3 rounded-xl border bg-card text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary max-h-32 overflow-y-auto"
+        />
+        <button
+          onClick={toggleListening}
+          disabled={loading}
+          className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+            listening
+              ? "bg-red-500 text-white"
+              : "bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+          }`}
+          title={listening ? "Parar gravação" : "Falar"}
+        >
+          {listening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+        </button>
+        <button
+          onClick={() => void send()}
+          disabled={!input.trim() || loading}
+          className="w-11 h-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 disabled:opacity-40 transition-opacity shrink-0"
+        >
+          <Send className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}

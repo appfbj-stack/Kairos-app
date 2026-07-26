@@ -1,0 +1,23 @@
+# Progresso - Kairos-app (sede-sorocaba)
+
+## Deploy
+- **VPS**: 187.77.229.227
+- **Frontend**: `sede-sorocaba.fbautomacao.space` (porta 3022)
+- **Backend API**: `api.sede-sorocaba.fbautomacao.space` (porta 8012)
+- **DNS**: Ambos resolvem para 187.77.229.227 ✓
+- **Caddy**: SSL automático (aponta para as portas corretas)
+
+## Containers rodando
+- `kairos-sede-sorocaba-backend-1`: Python FastAPI, Qwen 2.5 72B via OpenRouter
+- `kairos-sede-sorocaba-frontend-1`: React app via nginx
+- Postgres externo (`sede-sorocaba-postgres-1`)
+
+## Auto-Deploy (GitHub Actions)
+- Workflow: `.github/workflows/deploy.yml`
+- Aciona no push para `main`
+- SSH no VPS, `git pull`, `docker compose up -d --build`
+- **Pendente**: Configurar `VPS_SSH_KEY` como secret no repositório `appfbj-stack/sede-sorocaba`
+
+## Última alteração (commit `b922983`)
+- `docker-compose.yml`: produção (portas 8012/3022, OpenRouter Qwen, .env para secrets)
+- `.github/workflows/deploy.yml`: workflow de auto-deploy
