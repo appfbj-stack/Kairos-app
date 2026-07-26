@@ -16,7 +16,7 @@ def get_current_user(db: Session = Depends(get_db), token: str | None = Depends(
         # Cria usuário master mock se não existir
         tenant = db.query(Tenant).first()
         if not tenant:
-            tenant = Tenant(nome="Sede Sorocaba", slug="sede-sorocaba", ativo=True)
+            tenant = Tenant(nome="Igreja", slug="igreja", ativo=True)
             db.add(tenant)
             db.flush()
         usuario = Usuario(

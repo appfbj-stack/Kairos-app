@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     OPENROUTER_MODEL: str = "qwen/qwen-2.5-72b-instruct"
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
     OPENROUTER_SITE_URL: str = ""
-    OPENROUTER_SITE_NAME: str = "Kairos Sede Sorocaba"
+    OPENROUTER_SITE_NAME: str = "Kairos App"
     ASSISTENTE_MAX_TOKENS: int = 1024
     ASSISTENTE_HISTORICO_MAX: int = 20
 

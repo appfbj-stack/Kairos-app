@@ -18,17 +18,17 @@ class KairosToolDef:
 
 
 APP_DEFINITION: dict[str, Any] = {
-    "slug": "sede-sorocaba",
-    "name": "Igreja Sede Sorocaba",
+    "slug": "kairos-app",
+    "name": "Kairos Igreja",
     "description": "Gestão eclesiástica completa — membros, congregações, eventos, obreiros, patrimônio, batismos e carteirinhas",
     "version": "1.0.0",
-    "company": "Igreja Evangélica Sede Sorocaba",
+    "company": "Kairos Tecnologia",
     "environment": "production",
     "icon": "Church",
     "primary_color": "#1E40AF",
-    "api_url": "https://api.sede.fbautomacao.space",
-    "origin_url": "https://sede.fbautomacao.space",
-    "context": "Sistema de gestão eclesiástica da Igreja Evangélica Sede Sorocaba",
+    "api_url": "https://api.kairos.fbautomacao.space",
+    "origin_url": "https://kairos.fbautomacao.space",
+    "context": "Sistema de gestão eclesiástica multiplataforma",
     "modules": [
         {"key": "membresia", "name": "Membresia", "description": "Cadastro de membros", "module": "membresia"},
         {"key": "congregacoes", "name": "Congregações", "description": "Unidades e congregações", "module": "congregacoes"},

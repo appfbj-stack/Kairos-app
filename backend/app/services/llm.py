@@ -12,12 +12,12 @@ def get_client() -> OpenAI:
             api_key=settings.OPENROUTER_API_KEY,
             default_headers={
                 "HTTP-Referer": settings.OPENROUTER_SITE_URL or "https://sede.fbautomacao.space",
-                "X-Title": settings.OPENROUTER_SITE_NAME or "Kairos Sede Sorocaba",
+                "X-Title": settings.OPENROUTER_SITE_NAME or "Kairos App",
             },
         )
     return _client
 
-SYSTEM_PROMPT = """Voce e o Assistente Kairos, assistente oficial da OBPC Sorocaba.
+SYSTEM_PROMPT = """Voce e o Assistente Kairos, assistente oficial de gestao eclesiastica.
 Voce ajuda pastores, lideres e membros da igreja com:
 - Analise de documentos eclesiasticos e ministeriais
 - Consulta a dados de membros, congregacoes e obreiros

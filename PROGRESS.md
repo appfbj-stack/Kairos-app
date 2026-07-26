@@ -1,4 +1,4 @@
-# PROGRESS.md — Kairos Sede Sorocaba
+# PROGRESS.md — Kairos-app
 
 > Última atualização: 2026-07-24
 
