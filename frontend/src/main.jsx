@@ -4,10 +4,12 @@ import './styles/globals.css'
 import App from './App.jsx'
 
 if ('serviceWorker' in navigator) {
-  caches.keys().then(nomes => Promise.all(nomes.map(n => caches.delete(n))))
-  navigator.serviceWorker.getRegistrations().then(regs =>
-    regs.forEach(reg => reg.unregister())
-  )
+  (async () => {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    regs.forEach(reg => reg.unregister());
+    const nomes = await caches.keys();
+    await Promise.all(nomes.map(n => caches.delete(n)));
+  })();
 }
 
 createRoot(document.getElementById('root')).render(

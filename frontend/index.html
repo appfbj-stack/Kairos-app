@@ -10,14 +10,19 @@
     <title>Kairos Base</title>
     <script>
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(regs) {
+        (async function() {
+          var regs = await navigator.serviceWorker.getRegistrations();
+          var hadSw = regs.length > 0;
           regs.forEach(function(reg) { reg.unregister(); });
-        });
-        if (caches) {
-          caches.keys().then(function(nomes) {
-            nomes.forEach(function(n) { caches.delete(n); });
-          });
-        }
+          if (caches) {
+            var nomes = await caches.keys();
+            await Promise.all(nomes.map(function(n) { return caches.delete(n); }));
+          }
+          if (hadSw && !sessionStorage.getItem('kairos_clean')) {
+            sessionStorage.setItem('kairos_clean', '1');
+            window.location.reload();
+          }
+        })();
       }
     </script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
