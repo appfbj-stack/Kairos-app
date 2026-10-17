@@ -26,6 +26,7 @@ export default function ChatPage() {
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!getToken()) { router.replace("/login"); return; }
@@ -43,6 +44,47 @@ export default function ChatPage() {
     const r = await api<{ conversation: Conv }>("/api/pwa/conversations", { method: "POST", body: "{}" });
     setConv(r.conversation);
     return r.conversation;
+  }
+
+  async function handlePdfUpload(file: File) {
+    if (!file) return;
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      setError("Apenas PDF");
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setError("PDF maior que 20MB");
+      return;
+    }
+    setExtractingPdf(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const tok = getToken();
+      const r = await fetch("/api/pwa/pdf/extract", {
+        method: "POST",
+        headers: tok ? { Authorization: `Bearer ${tok}` } : undefined,
+        body: fd,
+      });
+      if (!r.ok) {
+        const t = await r.text().catch(() => "");
+        throw new Error(`HTTP ${r.status}: ${t.slice(0, 200)}`);
+      }
+      const j = await r.json();
+      const header = j.info?.Title
+        ? `[PDF: ${j.filename} (${j.numPages} pag) - ${j.info.Title}]\n\n`
+        : `[PDF: ${j.filename} (${j.numPages} pag)]\n\n`;
+      const truncatedNote = j.truncated ? "\n\n[texto truncado em 50k chars]" : "";
+      setInput((prev) => prev
+        ? `${prev}\n\n${header}${j.text}${truncatedNote}`
+        : `${header}${j.text}${truncatedNote}`);
+    } catch (err: any) {
+      setError(err?.message || "Falha ao extrair PDF");
+    } finally {
+      setExtractingPdf(false);
+      if (pdfInputRef.current) pdfInputRef.current.value = "";
+    }
   }
 
   async function send(e: React.FormEvent) {
@@ -240,8 +282,35 @@ export default function ChatPage() {
 
       <form onSubmit={send} className="border-t border-slate-200 bg-white px-3 py-3 flex gap-2 max-w-2xl w-full mx-auto">
         <input
+          ref={pdfInputRef}
+          type="file"
+          accept="application/pdf,.pdf"
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePdfUpload(f); }}
+          disabled={extractingPdf || streaming}
+        />
+        <button
+          type="button"
+          onClick={() => pdfInputRef.current?.click()}
+          disabled={extractingPdf || streaming}
+          className="px-3 py-2.5 border border-slate-200 rounded-xl text-slate-500 hover:text-kairos-bright hover:border-kairos-bright disabled:opacity-40"
+          aria-label="Anexar PDF"
+          title={extractingPdf ? "Extraindo texto..." : "Anexar PDF (extrai texto)"}
+        >
+          {extractingPdf ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" className="animate-spin"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" fill="none" strokeDasharray="40 60"/></svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="8" y1="13" x2="16" y2="13"/>
+              <line x1="8" y1="17" x2="14" y2="17"/>
+            </svg>
+          )}
+        </button>
+        <input
           value={input} onChange={(e) => setInput(e.target.value)}
-          placeholder="Pergunte algo ou peça um banner/reel..."
+          placeholder="Pergunte algo, peça um banner/reel ou anexe um PDF..."
           disabled={streaming}
           className="flex-1 px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-kairos-bright"
         />
