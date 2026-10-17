@@ -1,6 +1,10 @@
-// Service worker minimo (PWA install). Sem cache agressivo - backend centralizado.
+// Service worker DESATIVADO - desinstala qualquer versao antiga cacheada
+// Resolve problema de cache do navegador mostrando PWA antigo apos deploys.
 self.addEventListener("install", (e) => { self.skipWaiting(); });
-self.addEventListener("activate", (e) => { e.waitUntil(self.clients.claim()); });
-self.addEventListener("fetch", () => {
-  // Network-only. Banco fica no servidor, sem cache de dados sensiveis.
+self.addEventListener("activate", (e) => {
+  e.waitUntil(
+    self.registration.unregister().then(() => self.clients.matchAll()).then((clients) => {
+      clients.forEach((c) => c.navigate(c.url));
+    })
+  );
 });
