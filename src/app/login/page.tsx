@@ -9,6 +9,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [autoLoading, setAutoLoading] = useState(false);
+  const [autoOk, setAutoOk] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"login" | "signup">("login");
 
@@ -33,6 +35,34 @@ export default function LoginPage() {
     }
   }
 
+  // Entrada sem senha: usa a conta de demonstração do servidor.
+  // Só aparece se o backend tiver AUTO_LOGIN_EMAIL configurado.
+  async function entrarDemo() {
+    setAutoLoading(true);
+    setError(null);
+    try {
+      const r = await api<{ token: string; client: Client }>("/api/pwa/auth/auto-login");
+      setToken(r.token);
+      router.push("/chat");
+    } catch (err: any) {
+      setAutoOk(false);
+      setError("Demo indisponível: " + (err?.message || "erro"));
+    } finally {
+      setAutoLoading(false);
+    }
+  }
+
+  // Probe silencioso: esconde o botão se o backend não tiver auto-login.
+  async function checkAuto() {
+    try {
+      const res = await fetch("/api/pwa/auth/auto-login", { method: "GET" });
+      setAutoOk(res.ok);
+    } catch {
+      setAutoOk(false);
+    }
+  }
+  void checkAuto();
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-kairos-deep via-kairos-base to-kairos-deep px-4">
       <div className="w-full max-w-sm rounded-2xl bg-white/95 backdrop-blur p-7 shadow-2xl">
@@ -41,6 +71,25 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-kairos-deep">Kairós</h1>
           <p className="text-sm text-slate-500 mt-1">Seu assistente pessoal</p>
         </div>
+
+        {autoOk && (
+          <button
+            type="button"
+            onClick={entrarDemo}
+            disabled={autoLoading}
+            className="w-full py-2.5 mb-4 bg-kairos-deep text-kairos-neon rounded-lg font-semibold hover:opacity-90 disabled:opacity-50 transition"
+          >
+            {autoLoading ? "Entrando..." : "Entrar sem senha (demonstração)"}
+          </button>
+        )}
+
+        {autoOk && (
+          <div className="flex items-center gap-3 my-4">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-xs text-slate-400">ou</span>
+            <div className="h-px flex-1 bg-slate-200" />
+          </div>
+        )}
 
         <div className="flex gap-1 p-1 bg-slate-100 rounded-lg mb-4">
           <button
