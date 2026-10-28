@@ -31,9 +31,9 @@ export default function ChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!getToken()) { router.replace("/login"); return; }
+    if (!getToken()) { router.replace("/"); return; }
     api<{ client: Client }>("/api/pwa/auth/me").then((r) => setClient(r.client)).catch(() => {
-      setToken(null); router.replace("/login");
+      setToken(null); router.replace("/");
     });
   }, [router]);
 

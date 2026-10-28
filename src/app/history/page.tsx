@@ -12,10 +12,10 @@ export default function HistoryPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!getToken()) { router.replace("/login"); return; }
+    if (!getToken()) { router.replace("/"); return; }
     api<{ conversations: Conv[] }>("/api/pwa/conversations")
       .then((r) => setList(r.conversations))
-      .catch((e) => { setError(e.message); if (String(e.message).includes("Token") || String(e.message).includes("401")) { setToken(null); router.replace("/login"); } });
+      .catch((e) => { setError(e.message); if (String(e.message).includes("Token") || String(e.message).includes("401")) { setToken(null); router.replace("/"); } });
   }, [router]);
 
   async function del(id: string) {
