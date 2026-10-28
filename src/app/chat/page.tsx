@@ -206,9 +206,10 @@ export default function ChatPage() {
               <span>
                 <strong className="text-kairos-deep">{client.usageUsed}</strong>
                 {" / "}
-                <span className="text-slate-400">{client.usageLimit}</span>
+                <span className="text-slate-400">{client.usageLimit.toLocaleString("pt-BR")}</span>
                 {" msgs"}
                 {client.periodType === "DAILY" && <span className="text-slate-400"> /dia</span>}
+                {client.periodType === "MONTHLY" && <span className="text-slate-400"> /mês</span>}
               </span>
               <span
                 className={`px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wide ${
