@@ -176,6 +176,8 @@ export default function ChatPage() {
     } finally {
       setStreaming(false);
       abortRef.current = null;
+      // Revalida o contador diario (usageUsed) no cabecalho.
+      api<{ client: Client }>("/api/pwa/auth/me").then((r) => setClient(r.client)).catch(() => {});
     }
   }
 
@@ -311,7 +313,14 @@ export default function ChatPage() {
           )}
         </button>
         <input
-          value={input} onChange={(e) => setInput(e.target.value)}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              if (canSend) (e.currentTarget.form as HTMLFormElement | null)?.requestSubmit();
+            }
+          }}
           placeholder="Pergunte algo, peça um banner/reel ou anexe um PDF..."
           disabled={streaming}
           className="flex-1 px-3 py-2.5 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-kairos-bright"
